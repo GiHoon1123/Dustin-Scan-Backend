@@ -43,7 +43,6 @@ export class AccountsService {
     return this.toDto(chainAccount, txCount, address.toLowerCase());
   }
 
-
   /**
    * Chain 데이터 → DTO 변환
    */

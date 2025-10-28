@@ -2,7 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * 공통 API 응답 포맷
- * 
+ *
  * 모든 API는 이 형식으로 응답을 반환
  */
 export class CommonResponseDto<T> {
@@ -56,11 +56,7 @@ export class PaginationDto {
   @ApiProperty({ description: '이전 페이지 존재 여부', example: false })
   hasPrevious: boolean;
 
-  constructor(
-    currentPage: number,
-    pageSize: number,
-    totalCount: number,
-  ) {
+  constructor(currentPage: number, pageSize: number, totalCount: number) {
     this.currentPage = currentPage;
     this.pageSize = pageSize;
     this.totalCount = totalCount;
@@ -88,13 +84,18 @@ export class PaginatedDataDto<T> {
 
 /**
  * 페이징 응답 DTO
- * 
+ *
  * 목록 조회 API에서 사용
  */
 export class PaginatedResponseDto<T> extends CommonResponseDto<PaginatedDataDto<T>> {
-  constructor(items: T[], currentPage: number, pageSize: number, totalCount: number, message = '조회 성공') {
+  constructor(
+    items: T[],
+    currentPage: number,
+    pageSize: number,
+    totalCount: number,
+    message = '조회 성공',
+  ) {
     const data = new PaginatedDataDto(items, currentPage, pageSize, totalCount);
     super(true, message, data);
   }
 }
-

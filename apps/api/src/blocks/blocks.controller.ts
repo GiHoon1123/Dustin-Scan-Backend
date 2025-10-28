@@ -2,6 +2,7 @@ import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CommonResponseDto, PaginatedResponseDto } from '../common/dto';
 import { BlocksService } from './blocks.service';
+import { BlockDetailResponseDto } from './dto/block-detail-response.dto';
 import { BlockResponseDto } from './dto/block-response.dto';
 
 @ApiTags('블록 (Blocks)')
@@ -51,16 +52,10 @@ export class BlocksController {
   ): Promise<PaginatedResponseDto<BlockResponseDto>> {
     // limit는 최대 100으로 제한
     const actualLimit = Math.min(limit, 100);
-    
+
     const { blocks, totalCount } = await this.blocksService.getBlocks(page, actualLimit);
-    
-    return new PaginatedResponseDto(
-      blocks,
-      page,
-      actualLimit,
-      totalCount,
-      '블록 목록 조회 성공',
-    );
+
+    return new PaginatedResponseDto(blocks, page, actualLimit, totalCount, '블록 목록 조회 성공');
   }
 
   @Get('number/:number')
@@ -87,8 +82,8 @@ export class BlocksController {
   })
   @ApiResponse({
     status: 200,
-    description: '블록 조회 성공',
-    type: CommonResponseDto<BlockResponseDto>,
+    description: '블록 조회 성공 (트랜잭션 목록 포함)',
+    type: CommonResponseDto<BlockDetailResponseDto>,
   })
   @ApiResponse({
     status: 404,
@@ -96,7 +91,7 @@ export class BlocksController {
   })
   async getBlockByNumber(
     @Param('number', ParseIntPipe) number: number,
-  ): Promise<CommonResponseDto<BlockResponseDto>> {
+  ): Promise<CommonResponseDto<BlockDetailResponseDto>> {
     const block = await this.blocksService.getBlockByNumber(number);
     return CommonResponseDto.success(block, `블록 #${number} 조회 성공`);
   }
@@ -124,16 +119,14 @@ export class BlocksController {
   })
   @ApiResponse({
     status: 200,
-    description: '블록 조회 성공',
-    type: CommonResponseDto<BlockResponseDto>,
+    description: '블록 조회 성공 (트랜잭션 목록 포함)',
+    type: CommonResponseDto<BlockDetailResponseDto>,
   })
   @ApiResponse({
     status: 404,
     description: '블록을 찾을 수 없음',
   })
-  async getBlockByHash(
-    @Param('hash') hash: string,
-  ): Promise<CommonResponseDto<BlockResponseDto>> {
+  async getBlockByHash(@Param('hash') hash: string): Promise<CommonResponseDto<BlockDetailResponseDto>> {
     const block = await this.blocksService.getBlockByHash(hash);
     return CommonResponseDto.success(block, '블록 조회 성공');
   }
