@@ -1,11 +1,12 @@
 import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiExtraModels, ApiOperation, ApiParam, ApiQuery, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
 import { CommonResponseDto, PaginatedResponseDto } from '../common/dto';
 import { BlocksService } from './blocks.service';
 import { BlockDetailResponseDto } from './dto/block-detail-response.dto';
 import { BlockResponseDto } from './dto/block-response.dto';
 
 @ApiTags('블록 (Blocks)')
+@ApiExtraModels(CommonResponseDto, PaginatedResponseDto, BlockResponseDto, BlockDetailResponseDto)
 @Controller('blocks')
 export class BlocksController {
   constructor(private readonly blocksService: BlocksService) {}
@@ -44,7 +45,23 @@ export class BlocksController {
   @ApiResponse({
     status: 200,
     description: '블록 목록 조회 성공',
-    type: PaginatedResponseDto<BlockResponseDto>,
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(PaginatedResponseDto) },
+        {
+          properties: {
+            data: {
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $ref: getSchemaPath(BlockResponseDto) },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
   })
   async getBlocks(
     @Query('page', new ParseIntPipe({ optional: true })) page = 1,
@@ -83,7 +100,16 @@ export class BlocksController {
   @ApiResponse({
     status: 200,
     description: '블록 조회 성공 (트랜잭션 목록 포함)',
-    type: CommonResponseDto<BlockDetailResponseDto>,
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: { $ref: getSchemaPath(BlockDetailResponseDto) },
+          },
+        },
+      ],
+    },
   })
   @ApiResponse({
     status: 404,
@@ -120,13 +146,24 @@ export class BlocksController {
   @ApiResponse({
     status: 200,
     description: '블록 조회 성공 (트랜잭션 목록 포함)',
-    type: CommonResponseDto<BlockDetailResponseDto>,
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: { $ref: getSchemaPath(BlockDetailResponseDto) },
+          },
+        },
+      ],
+    },
   })
   @ApiResponse({
     status: 404,
     description: '블록을 찾을 수 없음',
   })
-  async getBlockByHash(@Param('hash') hash: string): Promise<CommonResponseDto<BlockDetailResponseDto>> {
+  async getBlockByHash(
+    @Param('hash') hash: string,
+  ): Promise<CommonResponseDto<BlockDetailResponseDto>> {
     const block = await this.blocksService.getBlockByHash(hash);
     return CommonResponseDto.success(block, '블록 조회 성공');
   }

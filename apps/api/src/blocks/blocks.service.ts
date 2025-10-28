@@ -1,3 +1,4 @@
+import { weiToDstn } from '@app/common';
 import { Block, Transaction, TransactionReceipt } from '@app/database';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -5,7 +6,6 @@ import { Repository } from 'typeorm';
 import { TransactionResponseDto } from '../transactions/dto/transaction-response.dto';
 import { BlockDetailResponseDto } from './dto/block-detail-response.dto';
 import { BlockResponseDto } from './dto/block-response.dto';
-import { weiToDstn } from '@app/common';
 
 /**
  * 블록 조회 서비스
@@ -137,10 +137,7 @@ export class BlocksService {
   /**
    * Transaction Entity → DTO 변환
    */
-  private txToDto(
-    tx: Transaction,
-    receipt: TransactionReceipt | null,
-  ): TransactionResponseDto {
+  private txToDto(tx: Transaction, receipt: TransactionReceipt | null): TransactionResponseDto {
     return {
       hash: tx.hash,
       blockHash: tx.blockHash,

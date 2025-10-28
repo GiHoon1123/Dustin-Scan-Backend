@@ -1,10 +1,11 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiExtraModels, ApiOperation, ApiParam, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
 import { CommonResponseDto } from '../common/dto';
 import { AccountsService } from './accounts.service';
 import { AccountResponseDto } from './dto/account-response.dto';
 
 @ApiTags('계정 (Accounts)')
+@ApiExtraModels(CommonResponseDto, AccountResponseDto)
 @Controller('accounts')
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
@@ -49,7 +50,16 @@ export class AccountsController {
   @ApiResponse({
     status: 200,
     description: '계정 조회 성공',
-    type: CommonResponseDto<AccountResponseDto>,
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: { $ref: getSchemaPath(AccountResponseDto) },
+          },
+        },
+      ],
+    },
   })
   @ApiResponse({
     status: 404,

@@ -1,10 +1,11 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiExtraModels, ApiOperation, ApiParam, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
 import { CommonResponseDto } from '../common/dto';
 import { TransactionResponseDto } from './dto/transaction-response.dto';
 import { TransactionsService } from './transactions.service';
 
 @ApiTags('트랜잭션 (Transactions)')
+@ApiExtraModels(CommonResponseDto, TransactionResponseDto)
 @Controller('transactions')
 export class TransactionsController {
   constructor(private readonly txService: TransactionsService) {}
@@ -48,7 +49,16 @@ export class TransactionsController {
   @ApiResponse({
     status: 200,
     description: '트랜잭션 조회 성공',
-    type: CommonResponseDto<TransactionResponseDto>,
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: { $ref: getSchemaPath(TransactionResponseDto) },
+          },
+        },
+      ],
+    },
   })
   @ApiResponse({
     status: 404,

@@ -3,7 +3,7 @@ import { TransactionResponseDto } from '../../transactions/dto/transaction-respo
 
 /**
  * 블록 상세 조회 응답 DTO
- * 
+ *
  * 블록 정보 + 포함된 트랜잭션 목록
  */
 export class BlockDetailResponseDto {
@@ -19,7 +19,10 @@ export class BlockDetailResponseDto {
   @ApiProperty({ description: '이전 블록 해시', example: '0xabcdef1234567890...' })
   parentHash: string;
 
-  @ApiProperty({ description: '블록 제안자 (Proposer) 주소', example: '0x742d35cc6634c0532925a3b844bc9e7595f0beb' })
+  @ApiProperty({
+    description: '블록 제안자 (Proposer) 주소',
+    example: '0x742d35cc6634c0532925a3b844bc9e7595f0beb',
+  })
   proposer: string;
 
   @ApiProperty({ description: '포함된 트랜잭션 개수', example: 5 })
@@ -37,8 +40,8 @@ export class BlockDetailResponseDto {
   @ApiProperty({ description: '생성 시각', example: '2025-10-29T00:00:00.000Z' })
   createdAt: string;
 
-  @ApiProperty({ 
-    description: '블록에 포함된 트랜잭션 목록', 
+  @ApiProperty({
+    description: '블록에 포함된 트랜잭션 목록',
     type: [TransactionResponseDto],
     example: [
       {
@@ -55,10 +58,9 @@ export class BlockDetailResponseDto {
         gasUsed: '21000',
         cumulativeGasUsed: '21000',
         contractAddress: null,
-        createdAt: '2025-10-29T00:00:00.000Z'
-      }
-    ]
+        createdAt: '2025-10-29T00:00:00.000Z',
+      },
+    ],
   })
   transactions: TransactionResponseDto[];
 }
-
