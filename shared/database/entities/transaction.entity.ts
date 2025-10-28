@@ -27,9 +27,6 @@ export class Transaction {
   @Column('int')
   nonce: number;
 
-  @Column()
-  status: string;
-
   @Column('bigint')
   timestamp: string;
 

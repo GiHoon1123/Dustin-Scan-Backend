@@ -40,6 +40,24 @@ export interface ChainTransactionDto {
 }
 
 /**
+ * 트랜잭션 Receipt 정보 (from Chain)
+ */
+export interface ChainReceiptDto {
+  transactionHash: string;
+  transactionIndex: string; // Hex String
+  blockHash: string;
+  blockNumber: string; // Hex String
+  from: string;
+  to: string;
+  status: string; // Hex String (0x0 or 0x1)
+  gasUsed: string; // Hex String (Wei)
+  cumulativeGasUsed: string; // Hex String (Wei)
+  contractAddress: string | null;
+  logs: any[];
+  logsBloom: string;
+}
+
+/**
  * 계정 정보 (from Chain)
  */
 export interface ChainAccountDto {

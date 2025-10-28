@@ -9,7 +9,7 @@
     "build": "nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"shared/**/*.ts\"",
     "lint": "eslint \"{apps,shared}/**/*.ts\" --fix",
-    "start:dev": "cross-env NODE_ENV=development concurrently \"npm:start:dev:api\" \"npm:start:dev:sync\"",
+    "start:dev": "cross-env NODE_ENV=development concurrently \"npm:start:dev:indexer\" \"npm:start:dev:sync\" \"npm:start:dev:api\"",
     "start:dev:all": "cross-env NODE_ENV=development concurrently \"npm:start:dev:api\" \"npm:start:dev:indexer\" \"npm:start:dev:sync\"",
     "start:dev:api": "cross-env NODE_ENV=development nest start api --watch",
     "start:dev:indexer": "cross-env NODE_ENV=development nest start indexer --watch",

@@ -1,5 +1,12 @@
-import { ChainBlockDto, ChainTransactionDto, hexToDecimal, hexToDecimalString } from '@app/common';
-import { Account, Block, Transaction } from '@app/database';
+import { ChainClientService } from '@app/chain-client';
+import {
+  ChainBlockDto,
+  ChainReceiptDto,
+  ChainTransactionDto,
+  hexToDecimal,
+  hexToDecimalString,
+} from '@app/common';
+import { Account, Block, Transaction, TransactionReceipt } from '@app/database';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -22,6 +29,7 @@ export class BlockIndexerService {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
+    private readonly chainClient: ChainClientService,
   ) {}
 
   /**
@@ -55,14 +63,35 @@ export class BlockIndexerService {
       await manager.save(Block, block);
       this.logger.debug(`Saved block #${blockNumber}`);
 
-      // 3. 트랜잭션들 저장 및 계정 업데이트
+      // 3. 트랜잭션들 저장, Receipt 조회 및 저장, 계정 업데이트
       for (const txData of blockData.transactions) {
         // 트랜잭션 저장
         const transaction = this.parseTransaction(txData, blockData);
         await manager.save(Transaction, transaction);
 
-        // 계정 잔액 업데이트
-        await this.updateAccounts(manager, txData);
+        // Receipt 조회 (Chain RPC 호출)
+        const receiptData = await this.chainClient.getReceipt(txData.hash);
+
+        if (receiptData) {
+          // Receipt 저장
+          const receipt = this.parseReceipt(receiptData);
+          await manager.save(TransactionReceipt, receipt);
+
+          // 계정 잔액 업데이트 (Receipt status에 따라)
+          // status === 1 (0x1) 이면 성공, 0 (0x0) 이면 실패
+          const status = hexToDecimal(receiptData.status);
+          if (status === 1) {
+            await this.updateAccounts(manager, txData);
+          } else {
+            // 실패한 트랜잭션은 잔액 변경 없음 (Gas도 없으므로 아무것도 안함)
+            this.logger.debug(`Transaction ${txData.hash} failed, skipping balance update`);
+          }
+        } else {
+          // Receipt가 없는 경우 (pending 상태일 수도 있지만, 블록에 포함되었으면 있어야 함)
+          this.logger.warn(`No receipt found for transaction ${txData.hash}`);
+          // Receipt 없어도 일단 계정 업데이트는 진행
+          await this.updateAccounts(manager, txData);
+        }
       }
 
       this.logger.debug(
@@ -125,13 +154,44 @@ export class BlockIndexerService {
     transaction.blockHash = blockData.hash;
     transaction.blockNumber = hexToDecimalString(blockData.number);
 
-    // 트랜잭션 상태 (confirmed로 설정)
-    transaction.status = 'confirmed';
-
     // 원본 데이터 저장
     transaction.raw = txData;
 
     return transaction;
+  }
+
+  /**
+   * Chain Receipt 데이터를 DB TransactionReceipt 엔티티로 변환
+   *
+   * @param receiptData - Chain Receipt 데이터
+   * @returns TransactionReceipt 엔티티
+   */
+  private parseReceipt(receiptData: ChainReceiptDto): TransactionReceipt {
+    const receipt = new TransactionReceipt();
+
+    // Receipt 기본 정보
+    receipt.transactionHash = receiptData.transactionHash;
+    receipt.transactionIndex = hexToDecimal(receiptData.transactionIndex);
+    receipt.blockHash = receiptData.blockHash;
+    receipt.blockNumber = hexToDecimalString(receiptData.blockNumber);
+    receipt.from = receiptData.from;
+    receipt.to = receiptData.to;
+
+    // 실행 상태 (Hex → Decimal: 0x0 → 0, 0x1 → 1)
+    receipt.status = hexToDecimal(receiptData.status);
+
+    // Gas 사용량 (Hex → Decimal String)
+    receipt.gasUsed = hexToDecimalString(receiptData.gasUsed);
+    receipt.cumulativeGasUsed = hexToDecimalString(receiptData.cumulativeGasUsed);
+
+    // Contract 주소 (있으면)
+    receipt.contractAddress = receiptData.contractAddress;
+
+    // 이벤트 로그
+    receipt.logs = receiptData.logs || [];
+    receipt.logsBloom = receiptData.logsBloom;
+
+    return receipt;
   }
 
   /**

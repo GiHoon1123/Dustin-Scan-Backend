@@ -1,4 +1,10 @@
-import { ChainAccountDto, ChainBlockDto, ChainStatsDto, ChainTransactionDto } from '@app/common';
+import {
+  ChainAccountDto,
+  ChainBlockDto,
+  ChainReceiptDto,
+  ChainStatsDto,
+  ChainTransactionDto,
+} from '@app/common';
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
@@ -115,6 +121,36 @@ export class ChainClientService {
       return response.data;
     } catch (error) {
       this.logger.error(`Failed to fetch transaction ${txHash}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * 트랜잭션 Receipt 조회
+   *
+   * GET /transaction/:hash/receipt
+   *
+   * Receipt는 트랜잭션 실행 결과 정보:
+   * - status: 성공(1) / 실패(0)
+   * - gasUsed: 사용된 Gas
+   * - logs: 이벤트 로그
+   *
+   * @param txHash 트랜잭션 해시
+   * @returns Receipt 정보 (없으면 null)
+   */
+  async getReceipt(txHash: string): Promise<ChainReceiptDto | null> {
+    try {
+      const response = await this.client.get<ChainReceiptDto | null>(
+        `/transaction/${txHash}/receipt`,
+      );
+      if (response.data) {
+        this.logger.debug(`Fetched receipt for transaction ${txHash}`);
+      } else {
+        this.logger.debug(`No receipt found for transaction ${txHash} (pending)`);
+      }
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to fetch receipt for transaction ${txHash}`, error);
       throw error;
     }
   }

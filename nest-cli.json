@@ -31,19 +31,19 @@
       "type": "library",
       "root": "shared/common",
       "entryFile": "index",
-      "sourceRoot": "shared/common/src"
+      "sourceRoot": "shared/common"
     },
     "database": {
       "type": "library",
       "root": "shared/database",
       "entryFile": "index",
-      "sourceRoot": "shared/database/src"
+      "sourceRoot": "shared/database"
     },
     "chain-client": {
       "type": "library",
       "root": "shared/chain-client",
       "entryFile": "index",
-      "sourceRoot": "shared/chain-client/src"
+      "sourceRoot": "shared/chain-client"
     },
     "shared": {
       "type": "library",
