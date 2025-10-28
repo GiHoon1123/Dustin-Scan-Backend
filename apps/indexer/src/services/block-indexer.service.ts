@@ -44,8 +44,6 @@ export class BlockIndexerService {
   async indexBlock(blockData: ChainBlockDto): Promise<void> {
     const blockNumber = hexToDecimal(blockData.number);
 
-    this.logger.debug(`Starting to index block #${blockNumber}`);
-
     // 트랜잭션 시작: 모든 작업이 성공해야만 커밋됨
     await this.dataSource.transaction(async (manager) => {
       // 1. 블록 중복 체크
@@ -61,7 +59,6 @@ export class BlockIndexerService {
       // 2. 블록 엔티티 생성 및 저장
       const block = this.parseBlock(blockData);
       await manager.save(Block, block);
-      this.logger.debug(`Saved block #${blockNumber}`);
 
       // 3. 트랜잭션들 저장, Receipt 조회 및 저장, 계정 업데이트
       for (const txData of blockData.transactions) {
@@ -76,19 +73,11 @@ export class BlockIndexerService {
           // Receipt 저장
           const receipt = this.parseReceipt(receiptData);
           await manager.save(TransactionReceipt, receipt);
-
-          // 계정 잔액은 더 이상 저장하지 않음 (실시간 RPC 조회로 대체)
-          const status = hexToDecimal(receiptData.status);
-          this.logger.debug(`Transaction ${txData.hash} ${status === 1 ? 'succeeded' : 'failed'}`);
         } else {
           // Receipt가 없는 경우 (pending 상태일 수도 있지만, 블록에 포함되었으면 있어야 함)
           this.logger.warn(`No receipt found for transaction ${txData.hash}`);
         }
       }
-
-      this.logger.debug(
-        `Indexed block #${blockNumber} with ${blockData.transactions.length} transactions`,
-      );
     });
   }
 

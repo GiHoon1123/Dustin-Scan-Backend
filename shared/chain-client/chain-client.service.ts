@@ -143,9 +143,7 @@ export class ChainClientService {
       const response = await this.client.get<ChainReceiptDto | null>(
         `/transaction/${txHash}/receipt`,
       );
-      if (response.data) {
-        this.logger.debug(`Fetched receipt for transaction ${txHash}`);
-      } else {
+      if (!response.data) {
         this.logger.debug(`No receipt found for transaction ${txHash} (pending)`);
       }
       return response.data;
