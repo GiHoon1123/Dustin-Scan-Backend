@@ -1,14 +1,93 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiExtraModels, ApiOperation, ApiParam, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
-import { CommonResponseDto } from '../common/dto';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  ApiExtraModels,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
+import { CommonResponseDto, PaginatedResponseDto } from '../common/dto';
 import { TransactionResponseDto } from './dto/transaction-response.dto';
 import { TransactionsService } from './transactions.service';
 
 @ApiTags('트랜잭션 (Transactions)')
-@ApiExtraModels(CommonResponseDto, TransactionResponseDto)
+@ApiExtraModels(CommonResponseDto, TransactionResponseDto, PaginatedResponseDto)
 @Controller('transactions')
 export class TransactionsController {
   constructor(private readonly txService: TransactionsService) {}
+
+  @Get('address/:address')
+  @ApiOperation({
+    summary: '특정 지갑 주소의 트랜잭션 목록 조회',
+    description: `
+특정 지갑 주소와 관련된 모든 트랜잭션을 조회합니다.
+- from 또는 to가 해당 주소인 트랜잭션 포함
+- 최신 트랜잭션부터 정렬
+- 페이징 지원 (최대 100개)
+    `,
+  })
+  @ApiParam({
+    name: 'address',
+    description: '지갑 주소 (0x로 시작하는 40자리 16진수)',
+    example: '0x2ac26b318b1136e535abb97733a00cc8b80a5b49',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: '페이지 번호 (기본값: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: '페이지당 항목 수 (기본값: 20, 최대: 100)',
+    example: 20,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '트랜잭션 목록 조회 성공',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(PaginatedResponseDto) },
+        {
+          properties: {
+            data: {
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $ref: getSchemaPath(TransactionResponseDto) },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  async getTransactionsByAddress(
+    @Param('address') address: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ): Promise<PaginatedResponseDto<TransactionResponseDto>> {
+    const actualLimit = Math.min(limit, 100);
+    const { transactions, totalCount } = await this.txService.getTransactionsByAddress(
+      address,
+      page,
+      actualLimit,
+    );
+    return new PaginatedResponseDto(
+      transactions,
+      page,
+      actualLimit,
+      totalCount,
+      `지갑 ${address.substring(0, 10)}...의 트랜잭션 목록 조회 성공`,
+    );
+  }
 
   @Get(':hash')
   @ApiOperation({

@@ -47,7 +47,8 @@ export class AccountsService {
    * Chain 데이터 → DTO 변환
    */
   private toDto(chainAccount: any, txCount: number, address: string): AccountResponseDto {
-    const balanceWei = hexToDecimal(chainAccount.balance).toString();
+    // hex string을 직접 decimal string으로 변환 (큰 숫자 정밀도 유지)
+    const balanceWei = BigInt(chainAccount.balance).toString();
 
     return {
       address,

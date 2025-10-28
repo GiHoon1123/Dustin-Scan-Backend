@@ -1,5 +1,12 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { ApiExtraModels, ApiOperation, ApiParam, ApiResponse, ApiTags, getSchemaPath } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import { CommonResponseDto } from '../common/dto';
 import { AccountsService } from './accounts.service';
 import { AccountResponseDto } from './dto/account-response.dto';
