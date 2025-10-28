@@ -1,17 +1,35 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ScheduleModule } from '@nestjs/schedule';
+import { Account, Block, Transaction } from '@app/database';
 import { SharedModule } from '@app/shared';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { IndexerController } from './indexer.controller';
+import { BlockIndexerService } from './services/block-indexer.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
     }),
-    ScheduleModule.forRoot(),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get('DB_HOST'),
+        port: config.get('DB_PORT'),
+        username: config.get('DB_USERNAME'),
+        password: config.get('DB_PASSWORD'),
+        database: config.get('DB_DATABASE'),
+        entities: [Block, Transaction, Account],
+        synchronize: config.get('DB_SYNCHRONIZE') === 'true',
+        logging: config.get('DB_LOGGING') === 'true',
+      }),
+    }),
+    TypeOrmModule.forFeature([Block, Transaction, Account]),
     SharedModule,
   ],
-  providers: [],
+  controllers: [IndexerController],
+  providers: [BlockIndexerService],
 })
 export class IndexerAppModule {}
