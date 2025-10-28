@@ -7,16 +7,18 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
-    "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
-    "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
-    "start:dev": "concurrently \"npm:start:dev:api\" \"npm:start:dev:indexer\" \"npm:start:dev:sync\"",
-    "start:dev:api": "nest start api --watch",
-    "start:dev:indexer": "nest start indexer --watch",
-    "start:dev:sync": "nest start sync --watch",
-    "start:prod": "concurrently \"npm:start:prod:api\" \"npm:start:prod:indexer\" \"npm:start:prod:sync\"",
-    "start:prod:api": "node dist/apps/api/src/main",
-    "start:prod:indexer": "node dist/apps/indexer/src/main",
-    "start:prod:sync": "node dist/apps/sync/src/main",
+    "format": "prettier --write \"apps/**/*.ts\" \"shared/**/*.ts\"",
+    "lint": "eslint \"{apps,shared}/**/*.ts\" --fix",
+    "start:dev": "cross-env NODE_ENV=development concurrently \"npm:start:dev:api\" \"npm:start:dev:sync\"",
+    "start:dev:all": "cross-env NODE_ENV=development concurrently \"npm:start:dev:api\" \"npm:start:dev:indexer\" \"npm:start:dev:sync\"",
+    "start:dev:api": "cross-env NODE_ENV=development nest start api --watch",
+    "start:dev:indexer": "cross-env NODE_ENV=development nest start indexer --watch",
+    "start:dev:sync": "cross-env NODE_ENV=development nest start sync --watch",
+    "start:prod": "cross-env NODE_ENV=production concurrently \"npm:start:prod:api\" \"npm:start:prod:sync\"",
+    "start:prod:all": "cross-env NODE_ENV=production concurrently \"npm:start:prod:api\" \"npm:start:prod:indexer\" \"npm:start:prod:sync\"",
+    "start:prod:api": "cross-env NODE_ENV=production node dist/apps/api/src/main",
+    "start:prod:indexer": "cross-env NODE_ENV=production node dist/apps/indexer/src/main",
+    "start:prod:sync": "cross-env NODE_ENV=production node dist/apps/sync/src/main",
     "test": "jest",
     "test:api": "jest --selectProjects api",
     "test:indexer": "jest --selectProjects indexer",
@@ -35,11 +37,14 @@
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/swagger": "^11.0.0",
+    "@nestjs/typeorm": "^10.0.0",
     "axios": "^1.7.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "pg": "^8.11.3",
     "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.0"
+    "rxjs": "^7.8.0",
+    "typeorm": "^0.3.20"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -56,6 +61,7 @@
     "@types/pg": "^8.11.10",
     "@types/supertest": "^6.0.2",
     "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -82,9 +88,9 @@
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^@app/common(|/.*)$": "<rootDir>/shared/common/src/$1",
-          "^@app/database(|/.*)$": "<rootDir>/shared/database/src/$1",
-          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/src/$1",
+          "^@app/common(|/.*)$": "<rootDir>/shared/common/$1",
+          "^@app/database(|/.*)$": "<rootDir>/shared/database/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/$1",
           "^@app/shared$": "<rootDir>/shared/shared.module"
         }
       },
@@ -97,9 +103,9 @@
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^@app/common(|/.*)$": "<rootDir>/shared/common/src/$1",
-          "^@app/database(|/.*)$": "<rootDir>/shared/database/src/$1",
-          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/src/$1",
+          "^@app/common(|/.*)$": "<rootDir>/shared/common/$1",
+          "^@app/database(|/.*)$": "<rootDir>/shared/database/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/$1",
           "^@app/shared$": "<rootDir>/shared/shared.module"
         }
       },
@@ -112,9 +118,9 @@
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^@app/common(|/.*)$": "<rootDir>/shared/common/src/$1",
-          "^@app/database(|/.*)$": "<rootDir>/shared/database/src/$1",
-          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/src/$1",
+          "^@app/common(|/.*)$": "<rootDir>/shared/common/$1",
+          "^@app/database(|/.*)$": "<rootDir>/shared/database/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/$1",
           "^@app/shared$": "<rootDir>/shared/shared.module"
         }
       },
@@ -127,9 +133,9 @@
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^@app/common(|/.*)$": "<rootDir>/shared/common/src/$1",
-          "^@app/database(|/.*)$": "<rootDir>/shared/database/src/$1",
-          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/src/$1",
+          "^@app/common(|/.*)$": "<rootDir>/shared/common/$1",
+          "^@app/database(|/.*)$": "<rootDir>/shared/database/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/$1",
           "^@app/shared$": "<rootDir>/shared/shared.module"
         }
       }
