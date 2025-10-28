@@ -81,8 +81,6 @@ export class ChainSyncerService {
 
       // Indexer에게 블록 전달
       await this.sendToIndexer(blockData);
-
-      this.logger.log(`Successfully synced block #${nextBlockNumber}`);
     } catch (error) {
       this.logger.error(`Failed to sync block: ${error.message}`, error.stack);
       // 다음 크론에서 재시도하므로 예외를 던지지 않음
@@ -165,8 +163,6 @@ export class ChainSyncerService {
       if (!response.data.success) {
         throw new Error(`Indexer failed to process block: ${response.data.error}`);
       }
-
-      this.logger.debug(`Indexer successfully processed block #${blockNumber}`);
     } catch (error) {
       // HTTP 에러 또는 Indexer 처리 실패
       this.logger.error(`Failed to send block #${blockNumber} to indexer: ${error.message}`);
