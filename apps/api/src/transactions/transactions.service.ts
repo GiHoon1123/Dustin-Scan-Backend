@@ -76,20 +76,26 @@ export class TransactionsService {
    * @param address - 계정 주소
    * @param page - 페이지 번호
    * @param limit - 페이지당 개수
-   * @returns 트랜잭션 목록 (Receipt 포함)
+   * @returns 트랜잭션 목록 및 전체 개수 (Receipt 포함)
    */
   async getTransactionsByAddress(
     address: string,
     page = 1,
     limit = 20,
-  ): Promise<TransactionResponseDto[]> {
+  ): Promise<{ transactions: TransactionResponseDto[]; totalCount: number }> {
     const skip = (page - 1) * limit;
+    const addressLower = address.toLowerCase();
 
+    // 전체 개수 조회
+    const totalCount = await this.txRepo
+      .createQueryBuilder('tx')
+      .where('tx.from = :address OR tx.to = :address', { address: addressLower })
+      .getCount();
+
+    // 페이징된 트랜잭션 조회
     const transactions = await this.txRepo
       .createQueryBuilder('tx')
-      .where('tx.from = :address OR tx.to = :address', {
-        address: address.toLowerCase(),
-      })
+      .where('tx.from = :address OR tx.to = :address', { address: addressLower })
       .orderBy('tx.blockNumber', 'DESC')
       .addOrderBy('tx.hash', 'DESC')
       .take(limit)
@@ -97,7 +103,7 @@ export class TransactionsService {
       .getMany();
 
     // 각 트랜잭션에 대한 Receipt 조회
-    return Promise.all(
+    const transactionsWithReceipts = await Promise.all(
       transactions.map(async (tx) => {
         const receipt = await this.receiptRepo.findOne({
           where: { transactionHash: tx.hash },
@@ -105,6 +111,11 @@ export class TransactionsService {
         return this.toDto(tx, receipt);
       }),
     );
+
+    return {
+      transactions: transactionsWithReceipts,
+      totalCount,
+    };
   }
 
   /**
