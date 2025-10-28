@@ -82,9 +82,10 @@
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
-          "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
-          "^@app/chain-client(|/.*)$": "<rootDir>/libs/chain-client/src/$1"
+          "^@app/common(|/.*)$": "<rootDir>/shared/common/src/$1",
+          "^@app/database(|/.*)$": "<rootDir>/shared/database/src/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/src/$1",
+          "^@app/shared$": "<rootDir>/shared/shared.module"
         }
       },
       {
@@ -96,9 +97,10 @@
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
-          "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
-          "^@app/chain-client(|/.*)$": "<rootDir>/libs/chain-client/src/$1"
+          "^@app/common(|/.*)$": "<rootDir>/shared/common/src/$1",
+          "^@app/database(|/.*)$": "<rootDir>/shared/database/src/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/src/$1",
+          "^@app/shared$": "<rootDir>/shared/shared.module"
         }
       },
       {
@@ -110,29 +112,31 @@
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
-          "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
-          "^@app/chain-client(|/.*)$": "<rootDir>/libs/chain-client/src/$1"
+          "^@app/common(|/.*)$": "<rootDir>/shared/common/src/$1",
+          "^@app/database(|/.*)$": "<rootDir>/shared/database/src/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/src/$1",
+          "^@app/shared$": "<rootDir>/shared/shared.module"
         }
       },
       {
         "displayName": "libs",
         "testMatch": [
-          "<rootDir>/libs/**/*.spec.ts"
+          "<rootDir>/shared/**/*.spec.ts"
         ],
         "transform": {
           "^.+\\.(t|j)s$": "ts-jest"
         },
         "moduleNameMapper": {
-          "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
-          "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
-          "^@app/chain-client(|/.*)$": "<rootDir>/libs/chain-client/src/$1"
+          "^@app/common(|/.*)$": "<rootDir>/shared/common/src/$1",
+          "^@app/database(|/.*)$": "<rootDir>/shared/database/src/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/shared/chain-client/src/$1",
+          "^@app/shared$": "<rootDir>/shared/shared.module"
         }
       }
     ],
     "collectCoverageFrom": [
       "apps/**/*.ts",
-      "libs/**/*.ts",
+      "shared/**/*.ts",
       "!**/*.spec.ts",
       "!**/node_modules/**"
     ],

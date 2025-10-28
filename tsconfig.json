@@ -18,13 +18,13 @@
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@app/common": ["libs/common/src"],
-      "@app/common/*": ["libs/common/src/*"],
-      "@app/database": ["libs/database/src"],
-      "@app/database/*": ["libs/database/src/*"],
-      "@app/chain-client": ["libs/chain-client/src"],
-      "@app/chain-client/*": ["libs/chain-client/src/*"]
+      "@app/common": ["shared/common/src"],
+      "@app/common/*": ["shared/common/src/*"],
+      "@app/database": ["shared/database/src"],
+      "@app/database/*": ["shared/database/src/*"],
+      "@app/chain-client": ["shared/chain-client/src"],
+      "@app/chain-client/*": ["shared/chain-client/src/*"],
+      "@app/shared": ["shared/shared.module"]
     }
   }
 }
-

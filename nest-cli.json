@@ -29,22 +29,27 @@
     },
     "common": {
       "type": "library",
-      "root": "libs/common",
+      "root": "shared/common",
       "entryFile": "index",
-      "sourceRoot": "libs/common/src"
+      "sourceRoot": "shared/common/src"
     },
     "database": {
       "type": "library",
-      "root": "libs/database",
+      "root": "shared/database",
       "entryFile": "index",
-      "sourceRoot": "libs/database/src"
+      "sourceRoot": "shared/database/src"
     },
     "chain-client": {
       "type": "library",
-      "root": "libs/chain-client",
+      "root": "shared/chain-client",
       "entryFile": "index",
-      "sourceRoot": "libs/chain-client/src"
+      "sourceRoot": "shared/chain-client/src"
+    },
+    "shared": {
+      "type": "library",
+      "root": "shared",
+      "entryFile": "shared.module",
+      "sourceRoot": "shared"
     }
   }
 }
-

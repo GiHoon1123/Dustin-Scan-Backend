@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { SharedModule } from '@app/shared';
 
 @Module({
   imports: [
@@ -9,7 +10,7 @@ import { ScheduleModule } from '@nestjs/schedule';
       envFilePath: '.env',
     }),
     ScheduleModule.forRoot(),
-    // TODO: 여기에 모듈 추가
+    SharedModule,
   ],
   providers: [],
 })
