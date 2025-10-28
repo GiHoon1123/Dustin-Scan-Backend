@@ -6,7 +6,7 @@ import {
   hexToDecimal,
   hexToDecimalString,
 } from '@app/common';
-import { Account, Block, Transaction, TransactionReceipt } from '@app/database';
+import { Block, Transaction, TransactionReceipt } from '@app/database';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -77,20 +77,12 @@ export class BlockIndexerService {
           const receipt = this.parseReceipt(receiptData);
           await manager.save(TransactionReceipt, receipt);
 
-          // 계정 잔액 업데이트 (Receipt status에 따라)
-          // status === 1 (0x1) 이면 성공, 0 (0x0) 이면 실패
+          // 계정 잔액은 더 이상 저장하지 않음 (실시간 RPC 조회로 대체)
           const status = hexToDecimal(receiptData.status);
-          if (status === 1) {
-            await this.updateAccounts(manager, txData);
-          } else {
-            // 실패한 트랜잭션은 잔액 변경 없음 (Gas도 없으므로 아무것도 안함)
-            this.logger.debug(`Transaction ${txData.hash} failed, skipping balance update`);
-          }
+          this.logger.debug(`Transaction ${txData.hash} ${status === 1 ? 'succeeded' : 'failed'}`);
         } else {
           // Receipt가 없는 경우 (pending 상태일 수도 있지만, 블록에 포함되었으면 있어야 함)
           this.logger.warn(`No receipt found for transaction ${txData.hash}`);
-          // Receipt 없어도 일단 계정 업데이트는 진행
-          await this.updateAccounts(manager, txData);
         }
       }
 
@@ -194,55 +186,6 @@ export class BlockIndexerService {
     return receipt;
   }
 
-  /**
-   * 트랜잭션에 따라 계정 잔액 및 nonce 업데이트
-   *
-   * 처리 로직:
-   * 1. from 계정: 잔액 차감, nonce 증가, txCount 증가
-   * 2. to 계정: 잔액 증가, txCount 증가
-   *
-   * @param manager - TypeORM EntityManager (트랜잭션 내에서 실행)
-   * @param txData - 트랜잭션 데이터
-   */
-  private async updateAccounts(manager: any, txData: ChainTransactionDto): Promise<void> {
-    const value = BigInt(hexToDecimalString(txData.value));
-    const nonce = hexToDecimal(txData.nonce);
-
-    // from 계정 처리
-    const fromAccount = await this.getOrCreateAccount(manager, txData.from);
-    fromAccount.balance = (BigInt(fromAccount.balance) - value).toString();
-    fromAccount.nonce = nonce + 1; // nonce는 다음 트랜잭션을 위해 1 증가
-    fromAccount.txCount += 1;
-    await manager.save(Account, fromAccount);
-
-    // to 계정 처리
-    const toAccount = await this.getOrCreateAccount(manager, txData.to);
-    toAccount.balance = (BigInt(toAccount.balance) + value).toString();
-    toAccount.txCount += 1;
-    await manager.save(Account, toAccount);
-  }
-
-  /**
-   * 계정 조회 또는 생성
-   *
-   * 계정이 없으면 새로 생성하고, 있으면 기존 계정 반환
-   *
-   * @param manager - TypeORM EntityManager
-   * @param address - 계정 주소
-   * @returns Account 엔티티
-   */
-  private async getOrCreateAccount(manager: any, address: string): Promise<Account> {
-    let account = await manager.findOne(Account, { where: { address } });
-
-    if (!account) {
-      account = new Account();
-      account.address = address;
-      account.balance = '0';
-      account.nonce = 0;
-      account.txCount = 0;
-      await manager.save(Account, account);
-    }
-
-    return account;
-  }
+  // 계정 정보는 더 이상 DB에 저장하지 않음
+  // API 조회 시 Chain RPC를 통해 실시간으로 가져옴
 }
