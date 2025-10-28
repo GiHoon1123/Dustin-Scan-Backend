@@ -1,0 +1,141 @@
+{
+  "name": "Dustin-Scan-Backend",
+  "version": "0.0.1",
+  "description": "Dustin Blockchain Explorer Backend - Monorepo",
+  "author": "",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "nest build",
+    "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
+    "lint": "eslint \"{apps,libs}/**/*.ts\" --fix",
+    "start:dev": "concurrently \"npm:start:dev:api\" \"npm:start:dev:indexer\" \"npm:start:dev:sync\"",
+    "start:dev:api": "nest start api --watch",
+    "start:dev:indexer": "nest start indexer --watch",
+    "start:dev:sync": "nest start sync --watch",
+    "start:prod": "concurrently \"npm:start:prod:api\" \"npm:start:prod:indexer\" \"npm:start:prod:sync\"",
+    "start:prod:api": "node dist/apps/api/src/main",
+    "start:prod:indexer": "node dist/apps/indexer/src/main",
+    "start:prod:sync": "node dist/apps/sync/src/main",
+    "test": "jest",
+    "test:api": "jest --selectProjects api",
+    "test:indexer": "jest --selectProjects indexer",
+    "test:sync": "jest --selectProjects sync",
+    "test:libs": "jest --selectProjects libs",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
+    "db:migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate",
+    "db:migration:run": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run",
+    "db:migration:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/schedule": "^6.0.0",
+    "@nestjs/swagger": "^11.0.0",
+    "axios": "^1.7.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.0",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
+    "@eslint/js": "^9.18.0",
+    "@nestjs/cli": "^11.0.0",
+    "@nestjs/schematics": "^11.0.0",
+    "@nestjs/testing": "^11.0.1",
+    "@swc/cli": "^0.6.0",
+    "@swc/core": "^1.10.7",
+    "@types/elliptic": "^6.4.18",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.7",
+    "@types/pg": "^8.11.10",
+    "@types/supertest": "^6.0.2",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.18.0",
+    "eslint-config-prettier": "^10.0.1",
+    "eslint-plugin-prettier": "^5.2.2",
+    "globals": "^16.0.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.4.2",
+    "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
+    "ts-jest": "^29.2.5",
+    "ts-loader": "^9.5.2",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0"
+  },
+  "jest": {
+    "projects": [
+      {
+        "displayName": "api",
+        "testMatch": [
+          "<rootDir>/apps/api/**/*.spec.ts"
+        ],
+        "transform": {
+          "^.+\\.(t|j)s$": "ts-jest"
+        },
+        "moduleNameMapper": {
+          "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+          "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/libs/chain-client/src/$1"
+        }
+      },
+      {
+        "displayName": "indexer",
+        "testMatch": [
+          "<rootDir>/apps/indexer/**/*.spec.ts"
+        ],
+        "transform": {
+          "^.+\\.(t|j)s$": "ts-jest"
+        },
+        "moduleNameMapper": {
+          "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+          "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/libs/chain-client/src/$1"
+        }
+      },
+      {
+        "displayName": "sync",
+        "testMatch": [
+          "<rootDir>/apps/sync/**/*.spec.ts"
+        ],
+        "transform": {
+          "^.+\\.(t|j)s$": "ts-jest"
+        },
+        "moduleNameMapper": {
+          "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+          "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/libs/chain-client/src/$1"
+        }
+      },
+      {
+        "displayName": "libs",
+        "testMatch": [
+          "<rootDir>/libs/**/*.spec.ts"
+        ],
+        "transform": {
+          "^.+\\.(t|j)s$": "ts-jest"
+        },
+        "moduleNameMapper": {
+          "^@app/common(|/.*)$": "<rootDir>/libs/common/src/$1",
+          "^@app/database(|/.*)$": "<rootDir>/libs/database/src/$1",
+          "^@app/chain-client(|/.*)$": "<rootDir>/libs/chain-client/src/$1"
+        }
+      }
+    ],
+    "collectCoverageFrom": [
+      "apps/**/*.ts",
+      "libs/**/*.ts",
+      "!**/*.spec.ts",
+      "!**/node_modules/**"
+    ],
+    "coverageDirectory": "./coverage"
+  }
+}
