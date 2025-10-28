@@ -1,8 +1,11 @@
 import { weiToDstn } from '@app/common';
-import { Transaction, TransactionReceipt } from '@app/database';
+import {
+  Transaction,
+  TransactionReceipt,
+  TransactionReceiptRepository,
+  TransactionRepository,
+} from '@app/database';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { TransactionResponseDto } from './dto/transaction-response.dto';
 
 /**
@@ -11,14 +14,13 @@ import { TransactionResponseDto } from './dto/transaction-response.dto';
  * Transaction + TransactionReceipt을 조인하여 완전한 정보 제공
  * - 기본 트랜잭션 정보 (hash, from, to, value 등)
  * - Receipt 정보 (status, gasUsed 등)
+ * - 비즈니스 로직에 집중하고, 데이터 접근은 레포지토리에 위임
  */
 @Injectable()
 export class TransactionsService {
   constructor(
-    @InjectRepository(Transaction)
-    private txRepo: Repository<Transaction>,
-    @InjectRepository(TransactionReceipt)
-    private receiptRepo: Repository<TransactionReceipt>,
+    private readonly txRepo: TransactionRepository,
+    private readonly receiptRepo: TransactionReceiptRepository,
   ) {}
 
   /**
@@ -29,23 +31,20 @@ export class TransactionsService {
    * @returns 트랜잭션 목록 (Receipt 포함)
    */
   async getTransactions(page = 1, limit = 20): Promise<TransactionResponseDto[]> {
-    const skip = (page - 1) * limit;
+    const [transactions] = await this.txRepo.findPaginated(page, limit);
 
-    const transactions = await this.txRepo.find({
-      order: { blockNumber: 'DESC', hash: 'DESC' },
-      take: limit,
-      skip,
+    // 트랜잭션 해시 배열 추출
+    const txHashes = transactions.map((tx) => tx.hash);
+
+    // 리시트 일괄 조회 (성능 최적화)
+    const receipts = await this.receiptRepo.findByTransactionHashes(txHashes);
+    const receiptMap = new Map(receipts.map((r) => [r.transactionHash, r]));
+
+    // 트랜잭션 DTO 변환
+    return transactions.map((tx) => {
+      const receipt = receiptMap.get(tx.hash);
+      return this.toDto(tx, receipt || null);
     });
-
-    // 각 트랜잭션에 대한 Receipt 조회
-    return Promise.all(
-      transactions.map(async (tx) => {
-        const receipt = await this.receiptRepo.findOne({
-          where: { transactionHash: tx.hash },
-        });
-        return this.toDto(tx, receipt);
-      }),
-    );
   }
 
   /**
@@ -55,15 +54,13 @@ export class TransactionsService {
    * @returns 트랜잭션 상세 (Receipt 포함)
    */
   async getTransactionByHash(hash: string): Promise<TransactionResponseDto> {
-    const tx = await this.txRepo.findOne({ where: { hash } });
+    const tx = await this.txRepo.findByHash(hash);
 
     if (!tx) {
       throw new NotFoundException(`Transaction ${hash} not found`);
     }
 
-    const receipt = await this.receiptRepo.findOne({
-      where: { transactionHash: hash },
-    });
+    const receipt = await this.receiptRepo.findByTransactionHash(hash);
 
     return this.toDto(tx, receipt);
   }
@@ -83,34 +80,24 @@ export class TransactionsService {
     page = 1,
     limit = 20,
   ): Promise<{ transactions: TransactionResponseDto[]; totalCount: number }> {
-    const skip = (page - 1) * limit;
-    const addressLower = address.toLowerCase();
-
-    // 전체 개수 조회
-    const totalCount = await this.txRepo
-      .createQueryBuilder('tx')
-      .where('tx.from = :address OR tx.to = :address', { address: addressLower })
-      .getCount();
-
-    // 페이징된 트랜잭션 조회
-    const transactions = await this.txRepo
-      .createQueryBuilder('tx')
-      .where('tx.from = :address OR tx.to = :address', { address: addressLower })
-      .orderBy('tx.blockNumber', 'DESC')
-      .addOrderBy('tx.hash', 'DESC')
-      .take(limit)
-      .skip(skip)
-      .getMany();
-
-    // 각 트랜잭션에 대한 Receipt 조회
-    const transactionsWithReceipts = await Promise.all(
-      transactions.map(async (tx) => {
-        const receipt = await this.receiptRepo.findOne({
-          where: { transactionHash: tx.hash },
-        });
-        return this.toDto(tx, receipt);
-      }),
+    const [transactions, totalCount] = await this.txRepo.findByAddressPaginated(
+      address,
+      page,
+      limit,
     );
+
+    // 트랜잭션 해시 배열 추출
+    const txHashes = transactions.map((tx) => tx.hash);
+
+    // 리시트 일괄 조회 (성능 최적화)
+    const receipts = await this.receiptRepo.findByTransactionHashes(txHashes);
+    const receiptMap = new Map(receipts.map((r) => [r.transactionHash, r]));
+
+    // 트랜잭션 DTO 변환
+    const transactionsWithReceipts = transactions.map((tx) => {
+      const receipt = receiptMap.get(tx.hash);
+      return this.toDto(tx, receipt || null);
+    });
 
     return {
       transactions: transactionsWithReceipts,

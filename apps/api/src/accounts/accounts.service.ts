@@ -1,9 +1,7 @@
 import { ChainClientService } from '@app/chain-client';
 import { hexToDecimal, weiToDstn } from '@app/common';
-import { Transaction } from '@app/database';
+import { TransactionRepository } from '@app/database';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { AccountResponseDto } from './dto/account-response.dto';
 
 /**
@@ -12,13 +10,13 @@ import { AccountResponseDto } from './dto/account-response.dto';
  * 실시간 RPC를 통해 계정 정보 조회 (DB 저장 X)
  * - Chain RPC: 잔액, nonce
  * - Transaction DB: 트랜잭션 개수 (송신 + 수신)
+ * - 비즈니스 로직에 집중하고, 데이터 접근은 레포지토리에 위임
  */
 @Injectable()
 export class AccountsService {
   constructor(
-    @InjectRepository(Transaction)
-    private transactionRepo: Repository<Transaction>,
-    private chainClient: ChainClientService,
+    private readonly transactionRepo: TransactionRepository,
+    private readonly chainClient: ChainClientService,
   ) {}
 
   /**
@@ -36,9 +34,7 @@ export class AccountsService {
     }
 
     // DB에서 트랜잭션 개수 조회 (from 또는 to가 해당 주소인 경우)
-    const txCount = await this.transactionRepo.count({
-      where: [{ from: address.toLowerCase() }, { to: address.toLowerCase() }],
-    });
+    const txCount = await this.transactionRepo.countByAddress(address.toLowerCase());
 
     return this.toDto(chainAccount, txCount, address.toLowerCase());
   }

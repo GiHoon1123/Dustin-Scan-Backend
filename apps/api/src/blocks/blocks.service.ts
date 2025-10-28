@@ -1,24 +1,28 @@
 import { weiToDstn } from '@app/common';
-import { Block, Transaction, TransactionReceipt } from '@app/database';
+import {
+  Block,
+  BlockRepository,
+  Transaction,
+  TransactionReceipt,
+  TransactionReceiptRepository,
+  TransactionRepository,
+} from '@app/database';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { TransactionResponseDto } from '../transactions/dto/transaction-response.dto';
 import { BlockDetailResponseDto } from './dto/block-detail-response.dto';
 import { BlockResponseDto } from './dto/block-response.dto';
 
 /**
  * 블록 조회 서비스
+ *
+ * 비즈니스 로직에 집중하고, 데이터 접근은 레포지토리에 위임
  */
 @Injectable()
 export class BlocksService {
   constructor(
-    @InjectRepository(Block)
-    private blockRepo: Repository<Block>,
-    @InjectRepository(Transaction)
-    private transactionRepo: Repository<Transaction>,
-    @InjectRepository(TransactionReceipt)
-    private receiptRepo: Repository<TransactionReceipt>,
+    private readonly blockRepo: BlockRepository,
+    private readonly transactionRepo: TransactionRepository,
+    private readonly receiptRepo: TransactionReceiptRepository,
   ) {}
 
   /**
@@ -32,13 +36,7 @@ export class BlocksService {
     page = 1,
     limit = 20,
   ): Promise<{ blocks: BlockResponseDto[]; totalCount: number }> {
-    const skip = (page - 1) * limit;
-
-    const [blocks, totalCount] = await this.blockRepo.findAndCount({
-      order: { number: 'DESC' },
-      take: limit,
-      skip,
-    });
+    const [blocks, totalCount] = await this.blockRepo.findPaginated(page, limit);
 
     return {
       blocks: blocks.map((block) => this.toListDto(block)),
@@ -53,7 +51,7 @@ export class BlocksService {
    * @returns 블록 상세 (트랜잭션 포함)
    */
   async getBlockByHash(hash: string): Promise<BlockDetailResponseDto> {
-    const block = await this.blockRepo.findOne({ where: { hash } });
+    const block = await this.blockRepo.findByHash(hash);
 
     if (!block) {
       throw new NotFoundException(`블록 해시 ${hash}를 찾을 수 없습니다`);
@@ -69,9 +67,7 @@ export class BlocksService {
    * @returns 블록 상세 (트랜잭션 포함)
    */
   async getBlockByNumber(number: number): Promise<BlockDetailResponseDto> {
-    const block = await this.blockRepo.findOne({
-      where: { number: number.toString() },
-    });
+    const block = await this.blockRepo.findByNumber(number.toString());
 
     if (!block) {
       throw new NotFoundException(`블록 번호 #${number}를 찾을 수 없습니다`);
@@ -103,21 +99,20 @@ export class BlocksService {
    */
   private async toDetailDto(block: Block): Promise<BlockDetailResponseDto> {
     // 블록에 포함된 트랜잭션 조회
-    const transactions = await this.transactionRepo.find({
-      where: { blockHash: block.hash },
-      order: { nonce: 'ASC' },
+    const transactions = await this.transactionRepo.findByBlockHash(block.hash);
+
+    // 트랜잭션 해시 배열 추출
+    const txHashes = transactions.map((tx) => tx.hash);
+
+    // 리시트 일괄 조회 (성능 최적화)
+    const receipts = await this.receiptRepo.findByTransactionHashes(txHashes);
+    const receiptMap = new Map(receipts.map((r) => [r.transactionHash, r]));
+
+    // 트랜잭션 DTO 변환
+    const transactionDtos = transactions.map((tx) => {
+      const receipt = receiptMap.get(tx.hash);
+      return this.txToDto(tx, receipt || null);
     });
-
-    // 각 트랜잭션에 대한 Receipt 조회
-    const transactionDtos = await Promise.all(
-      transactions.map(async (tx) => {
-        const receipt = await this.receiptRepo.findOne({
-          where: { transactionHash: tx.hash },
-        });
-
-        return this.txToDto(tx, receipt);
-      }),
-    );
 
     return {
       hash: block.hash,
