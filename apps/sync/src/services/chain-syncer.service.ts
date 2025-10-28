@@ -2,6 +2,7 @@ import { ChainClientService } from '@app/chain-client';
 import { ChainBlockDto } from '@app/common';
 import { Block } from '@app/database';
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import axios from 'axios';
@@ -34,9 +35,10 @@ export class ChainSyncerService {
     @InjectRepository(Block)
     private readonly blockRepo: Repository<Block>,
     private readonly chainClient: ChainClientService,
+    private readonly configService: ConfigService,
   ) {
-    // Indexer Server URL 설정
-    this.indexerUrl = process.env.INDEXER_URL || 'http://localhost:4001';
+    // Indexer Server URL 설정 (환경변수에서 가져오기)
+    this.indexerUrl = this.configService.get<string>('INDEXER_URL') || 'http://localhost:4001';
 
     this.logger.log(`Chain Syncer initialized. Indexer URL: ${this.indexerUrl}`);
   }
