@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: dustin-scan
+  labels:
+    app: dustin-scan
+    component: api
+spec:
+  replicas: 3 # 초기 3개 파드, HPA로 자동 조절
+  selector:
+    matchLabels:
+      app: dustin-scan
+      component: api
+  template:
+    metadata:
+      labels:
+        app: dustin-scan
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: your-dockerhub-username/dustin-scan-api:latest # TODO: 실제 이미지 경로로 변경
+          imagePullPolicy: Always
+          command: ['node', 'dist/apps/api/src/main']
+          ports:
+            - name: http
+              containerPort: 4000
+              protocol: TCP
+          env:
+            # ConfigMap에서 환경변수 가져오기
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: NODE_ENV
+            - name: API_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: API_PORT
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: DB_PORT
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: DB_USERNAME
+            - name: DB_SYNCHRONIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: DB_SYNCHRONIZE
+            - name: CHAIN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: CHAIN_URL
+            - name: HEALTHCHECK_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: API_PORT
+            # Secret에서 민감한 정보 가져오기
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dustin-scan-secret
+                  key: DB_PASSWORD
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: dustin-scan-secret
+                  key: DB_DATABASE
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3

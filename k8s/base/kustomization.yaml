@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: dustin-scan
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - api-deployment.yaml
+  - indexer-deployment.yaml
+  - sync-deployment.yaml
+  - api-service.yaml
+  - indexer-service.yaml
+  - api-hpa.yaml
+
+commonLabels:
+  app: dustin-scan
+  managed-by: kustomize

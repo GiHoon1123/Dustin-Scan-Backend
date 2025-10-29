@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dustin-scan-config
+  namespace: dustin-scan
+data:
+  # Node 환경
+  NODE_ENV: 'production'
+
+  # 포트 설정
+  API_PORT: '4000'
+  INDEXER_PORT: '4001'
+  SYNC_PORT: '4002'
+
+  # 데이터베이스 설정 (비밀번호 제외)
+  DB_HOST: 'postgres-service' # PostgreSQL 서비스 이름
+  DB_PORT: '5432'
+  DB_USERNAME: 'root'
+  DB_SYNCHRONIZE: 'false'
+
+  # Chain RPC URL (운영 환경 기본값, overlay에서 변경 가능)
+  CHAIN_URL: 'http://dustin-chain-service:3000'
+
+  # Indexer Service URL (ClusterIP로 내부 통신)
+  INDEXER_URL: 'http://indexer-service:4001'
+
+  # Healthcheck 포트
+  HEALTHCHECK_PORT: '4000'

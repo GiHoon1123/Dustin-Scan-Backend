@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sync
+  namespace: dustin-scan
+  labels:
+    app: dustin-scan
+    component: sync
+spec:
+  replicas: 1 # 고정 1개 (스케일링 하지 않음)
+  selector:
+    matchLabels:
+      app: dustin-scan
+      component: sync
+  template:
+    metadata:
+      labels:
+        app: dustin-scan
+        component: sync
+    spec:
+      containers:
+        - name: sync
+          image: your-dockerhub-username/dustin-scan-sync:latest # TODO: 실제 이미지 경로로 변경
+          imagePullPolicy: Always
+          command: ['node', 'dist/apps/sync/src/main']
+          ports:
+            - name: http
+              containerPort: 4002
+              protocol: TCP
+          env:
+            # ConfigMap에서 환경변수 가져오기
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: NODE_ENV
+            - name: SYNC_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: SYNC_PORT
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: DB_PORT
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: DB_USERNAME
+            - name: DB_SYNCHRONIZE
+              value: 'false' # Sync는 스키마 동기화 안함
+            - name: CHAIN_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: CHAIN_URL
+            - name: INDEXER_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: INDEXER_URL
+            - name: HEALTHCHECK_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: dustin-scan-config
+                  key: SYNC_PORT
+            # Secret에서 민감한 정보 가져오기
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: dustin-scan-secret
+                  key: DB_PASSWORD
+            - name: DB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: dustin-scan-secret
+                  key: DB_DATABASE
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4002
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4002
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
