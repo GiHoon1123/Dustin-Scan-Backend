@@ -12,8 +12,7 @@ data:
   INDEXER_PORT: '4001'
   SYNC_PORT: '4002'
 
-  # 데이터베이스 설정 (비밀번호 제외)
-  DB_HOST: 'postgres-service' # PostgreSQL 서비스 이름
+  # 데이터베이스 설정 (호스트와 비밀번호는 Secret에서 관리)
   DB_PORT: '5432'
   DB_USERNAME: 'root'
   DB_SYNCHRONIZE: 'false'

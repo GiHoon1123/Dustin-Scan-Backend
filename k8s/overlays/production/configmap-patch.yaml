@@ -9,5 +9,3 @@ data:
 
   # 운영용 Chain URL (실제 운영 서버)
   CHAIN_URL: 'http://dustin-chain-service:3000'
-
-  # 데이터베이스 이름: dustin_scan (base secret에 정의됨)

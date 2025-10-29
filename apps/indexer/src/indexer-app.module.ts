@@ -2,7 +2,9 @@ import { Block, Transaction, TransactionReceipt } from '@app/database';
 import { SharedModule } from '@app/shared';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TerminusModule } from '@nestjs/terminus';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HealthController } from './health/health.controller';
 import { IndexerController } from './indexer.controller';
 import { BlockIndexerService } from './services/block-indexer.service';
 
@@ -30,8 +32,9 @@ import { BlockIndexerService } from './services/block-indexer.service';
     }),
     TypeOrmModule.forFeature([Block, Transaction, TransactionReceipt]),
     SharedModule,
+    TerminusModule,
   ],
-  controllers: [IndexerController],
+  controllers: [IndexerController, HealthController],
   providers: [BlockIndexerService],
 })
 export class IndexerAppModule {}

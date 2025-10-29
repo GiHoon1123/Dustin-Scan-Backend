@@ -41,8 +41,8 @@ spec:
                   key: INDEXER_PORT
             - name: DB_HOST
               valueFrom:
-                configMapKeyRef:
-                  name: dustin-scan-config
+                secretKeyRef:
+                  name: dustin-scan-secret
                   key: DB_HOST
             - name: DB_PORT
               valueFrom:

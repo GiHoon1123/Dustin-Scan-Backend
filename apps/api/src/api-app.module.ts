@@ -2,9 +2,11 @@ import { Block, Transaction, TransactionReceipt } from '@app/database';
 import { SharedModule } from '@app/shared';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TerminusModule } from '@nestjs/terminus';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccountsModule } from './accounts/accounts.module';
 import { BlocksModule } from './blocks/blocks.module';
+import { HealthController } from './health/health.controller';
 import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
@@ -30,10 +32,11 @@ import { TransactionsModule } from './transactions/transactions.module';
       }),
     }),
     SharedModule,
+    TerminusModule,
     BlocksModule,
     TransactionsModule,
     AccountsModule,
   ],
-  controllers: [],
+  controllers: [HealthController],
 })
 export class ApiAppModule {}

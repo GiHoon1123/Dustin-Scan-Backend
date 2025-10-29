@@ -3,7 +3,9 @@ import { SharedModule } from '@app/shared';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TerminusModule } from '@nestjs/terminus';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HealthController } from './health/health.controller';
 import { ChainSyncerService } from './services/chain-syncer.service';
 
 @Module({
@@ -31,7 +33,9 @@ import { ChainSyncerService } from './services/chain-syncer.service';
     TypeOrmModule.forFeature([Block, Transaction, TransactionReceipt]),
     ScheduleModule.forRoot(),
     SharedModule,
+    TerminusModule,
   ],
+  controllers: [HealthController],
   providers: [ChainSyncerService],
 })
 export class SyncAppModule {}
