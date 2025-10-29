@@ -18,6 +18,67 @@ import { TransactionsService } from './transactions.service';
 export class TransactionsController {
   constructor(private readonly txService: TransactionsService) {}
 
+  @Get()
+  @ApiOperation({
+    summary: '트랜잭션 목록 조회',
+    description: `
+모든 트랜잭션 목록을 조회합니다.
+- 최신 블록순으로 정렬 (blockNumber DESC)
+- 페이징 지원 (최대 100개)
+- Receipt 정보 포함
+    `,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: '페이지 번호 (기본값: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: '페이지당 항목 수 (기본값: 20, 최대: 100)',
+    example: 20,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '트랜잭션 목록 조회 성공',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(PaginatedResponseDto) },
+        {
+          properties: {
+            data: {
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $ref: getSchemaPath(TransactionResponseDto) },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  async getTransactions(
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ): Promise<PaginatedResponseDto<TransactionResponseDto>> {
+    const actualLimit = Math.min(limit, 100);
+    const { transactions, totalCount } = await this.txService.getTransactions(page, actualLimit);
+
+    return new PaginatedResponseDto(
+      transactions,
+      page,
+      actualLimit,
+      totalCount,
+      '트랜잭션 목록 조회 성공',
+    );
+  }
+
   @Get('address/:address')
   @ApiOperation({
     summary: '특정 지갑 주소의 트랜잭션 목록 조회',

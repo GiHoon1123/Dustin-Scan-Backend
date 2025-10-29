@@ -28,10 +28,13 @@ export class TransactionsService {
    *
    * @param page - 페이지 번호 (1부터 시작)
    * @param limit - 페이지당 개수
-   * @returns 트랜잭션 목록 (Receipt 포함)
+   * @returns 트랜잭션 목록 및 전체 개수 (Receipt 포함)
    */
-  async getTransactions(page = 1, limit = 20): Promise<TransactionResponseDto[]> {
-    const [transactions] = await this.txRepo.findPaginated(page, limit);
+  async getTransactions(
+    page = 1,
+    limit = 20,
+  ): Promise<{ transactions: TransactionResponseDto[]; totalCount: number }> {
+    const [transactions, totalCount] = await this.txRepo.findPaginated(page, limit);
 
     // 트랜잭션 해시 배열 추출
     const txHashes = transactions.map((tx) => tx.hash);
@@ -41,10 +44,15 @@ export class TransactionsService {
     const receiptMap = new Map(receipts.map((r) => [r.transactionHash, r]));
 
     // 트랜잭션 DTO 변환
-    return transactions.map((tx) => {
+    const transactionsWithReceipts = transactions.map((tx) => {
       const receipt = receiptMap.get(tx.hash);
       return this.toDto(tx, receipt || null);
     });
+
+    return {
+      transactions: transactionsWithReceipts,
+      totalCount,
+    };
   }
 
   /**
