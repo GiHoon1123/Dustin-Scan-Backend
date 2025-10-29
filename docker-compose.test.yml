@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Indexer (먼저 시작)
+  indexer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dustin-scan-indexer
+    command: ['node', 'dist/apps/indexer/src/main']
+    ports:
+      - '4001:4001'
+    environment:
+      NODE_ENV: development
+      INDEXER_PORT: 4001
+      DB_HOST: host.docker.internal
+      DB_PORT: 5432
+      DB_USERNAME: root
+      DB_PASSWORD: 1234
+      DB_DATABASE: dustin_scan_dev
+      DB_SYNCHRONIZE: 'true'
+      CHAIN_URL: http://host.docker.internal:3000
+      HEALTHCHECK_PORT: 4001
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped
+
+  # Sync (Indexer 다음)
+  sync:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dustin-scan-sync
+    command: ['node', 'dist/apps/sync/src/main']
+    ports:
+      - '4002:4002'
+    environment:
+      NODE_ENV: development
+      SYNC_PORT: 4002
+      DB_HOST: host.docker.internal
+      DB_PORT: 5432
+      DB_USERNAME: root
+      DB_PASSWORD: 1234
+      DB_DATABASE: dustin_scan_dev
+      DB_SYNCHRONIZE: 'true'
+      CHAIN_URL: http://host.docker.internal:3000
+      INDEXER_URL: http://indexer:4001
+      HEALTHCHECK_PORT: 4002
+    depends_on:
+      - indexer
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped
+
+  # API (마지막)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dustin-scan-api
+    command: ['node', 'dist/apps/api/src/main']
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: development
+      API_PORT: 4000
+      DB_HOST: host.docker.internal
+      DB_PORT: 5432
+      DB_USERNAME: root
+      DB_PASSWORD: 1234
+      DB_DATABASE: dustin_scan_dev
+      DB_SYNCHRONIZE: 'true'
+      CHAIN_URL: http://host.docker.internal:3000
+      HEALTHCHECK_PORT: 4000
+    depends_on:
+      - indexer
+      - sync
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    restart: unless-stopped
