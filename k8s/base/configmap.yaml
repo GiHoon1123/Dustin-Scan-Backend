@@ -21,7 +21,7 @@ data:
   CHAIN_URL: 'http://dustin-chain-service:3000'
 
   # Indexer Service URL (ClusterIP로 내부 통신)
-  INDEXER_URL: 'http://indexer-service:4001'
+  INDEXER_URL: 'http://prod-indexer-service:4001'
 
   # Healthcheck 포트
   HEALTHCHECK_PORT: '4000'
