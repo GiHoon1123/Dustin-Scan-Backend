@@ -63,11 +63,11 @@ image: dustin/dustin-scan-backend:latest
 
 **리포지토리 Settings → Secrets and variables → Actions**에서 다음 Secrets를 추가하세요:
 
-| Secret 이름       | 설명                      | 예시              |
-| ----------------- | ------------------------- | ----------------- |
-| `DOCKER_USERNAME` | Docker Hub 사용자명       | `dustin`          |
-| `DOCKER_PASSWORD` | Docker Hub Access Token   | `dckr_pat_xxx...` |
-| `KUBE_CONFIG`     | Kubernetes 설정 (base64)  | 아래 참조         |
+| Secret 이름       | 설명                     | 예시              |
+| ----------------- | ------------------------ | ----------------- |
+| `DOCKER_USERNAME` | Docker Hub 사용자명      | `dustin`          |
+| `DOCKER_PASSWORD` | Docker Hub Access Token  | `dckr_pat_xxx...` |
+| `KUBE_CONFIG`     | Kubernetes 설정 (base64) | 아래 참조         |
 
 #### KUBE_CONFIG 생성 방법
 

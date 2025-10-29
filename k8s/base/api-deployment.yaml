@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: your-dockerhub-username/dustin-scan-api:latest # TODO: 실제 이미지 경로로 변경
+          image: deukchunjang/dustin-scan-backend:latest
           imagePullPolicy: Always
           command: ['node', 'dist/apps/api/src/main']
           ports:
