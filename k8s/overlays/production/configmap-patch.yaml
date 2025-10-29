@@ -7,5 +7,5 @@ data:
   # 운영 환경 설정
   NODE_ENV: 'production'
 
-  # 운영용 Chain URL (실제 운영 서버)
-  CHAIN_URL: 'http://dustin-chain-service:3000'
+  # 운영용 Chain URL (EC2 Docker에서 실행 중)
+  CHAIN_URL: 'http://172.31.45.89:3000'
