@@ -7,7 +7,7 @@ metadata:
     app: dustin-scan
     component: api
 spec:
-  replicas: 3 # 초기 3개 파드, HPA로 자동 조절
+  replicas: 1 # 초기 1개 파드, HPA로 자동 조절
   selector:
     matchLabels:
       app: dustin-scan
