@@ -68,7 +68,6 @@ image: dustin/dustin-scan-backend:latest
 | `DOCKER_USERNAME` | Docker Hub 사용자명       | `dustin`          |
 | `DOCKER_PASSWORD` | Docker Hub Access Token   | `dckr_pat_xxx...` |
 | `KUBE_CONFIG`     | Kubernetes 설정 (base64)  | 아래 참조         |
-| `KUBE_CONFIG_DEV` | 개발 환경 K8s 설정 (선택) | 아래 참조         |
 
 #### KUBE_CONFIG 생성 방법
 
@@ -94,7 +93,6 @@ cat ~/.kube/config | base64
                           ↓
 ┌─────────────────────────────────────────────────────────┐
 │  2. GitHub에 푸시                                       │
-│     ├─ develop 브랜치 → 개발 환경 배포                 │
 │     └─ main 브랜치 → 운영 환경 배포                    │
 └─────────────────────────────────────────────────────────┘
                           ↓
@@ -121,24 +119,16 @@ cat ~/.kube/config | base64
 
 ### Workflow 파일
 
-- **`.github/workflows/deploy.yml`**: `main` 브랜치 → 운영 환경
-- **`.github/workflows/deploy-dev.yml`**: `develop` 브랜치 → 개발 환경
+- **`.github/workflows/deploy.yml`**: `main` 브랜치 → 자동 배포
 
 ### 배포 예시
 
 ```bash
-# 개발 환경 배포
-git checkout develop
+# 코드 작성 후 main 브랜치에 푸시
 git add .
 git commit -m "feat: 새로운 기능 추가"
-git push origin develop
-# → GitHub Actions가 자동으로 개발 환경에 배포
-
-# 운영 환경 배포
-git checkout main
-git merge develop
 git push origin main
-# → GitHub Actions가 자동으로 운영 환경에 배포
+# → GitHub Actions가 자동으로 배포
 ```
 
 ### 배포 상태 확인
@@ -149,28 +139,17 @@ GitHub 리포지토리 → **Actions** 탭에서 실시간 배포 진행 상황 
 
 ## 🚀 배포 방법
 
-### 개발 환경 배포
-
 ```bash
 # 1. 네임스페이스 생성
 kubectl create namespace dustin-scan
 
 # 2. Kustomize로 배포
-kubectl apply -k k8s/overlays/development
+kubectl apply -k k8s/overlays/production
 
 # 3. 배포 확인
 kubectl get pods -n dustin-scan
 kubectl get services -n dustin-scan
 kubectl get hpa -n dustin-scan
-```
-
-### 운영 환경 배포
-
-```bash
-# Kustomize로 운영 환경 배포
-kubectl apply -k k8s/overlays/production
-
-# 배포 확인
 kubectl get all -n dustin-scan
 ```
 
@@ -257,31 +236,25 @@ kubectl rollout undo deployment/api -n dustin-scan
 
 ```bash
 # 변경 후 재배포
-kubectl apply -k k8s/overlays/development
+kubectl apply -k k8s/overlays/production
 
 # Pod 재시작 (ConfigMap 변경사항 적용)
-kubectl rollout restart deployment/api -n dustin-scan
-kubectl rollout restart deployment/indexer -n dustin-scan
-kubectl rollout restart deployment/sync -n dustin-scan
+kubectl rollout restart deployment/prod-api -n dustin-scan
+kubectl rollout restart deployment/prod-indexer -n dustin-scan
+kubectl rollout restart deployment/prod-sync -n dustin-scan
 ```
 
 ---
 
 ## 🗑️ 삭제
 
-### 개발 환경 삭제
-
-```bash
-kubectl delete -k k8s/overlays/development
-```
-
-### 운영 환경 삭제
+### 배포 삭제
 
 ```bash
 kubectl delete -k k8s/overlays/production
 ```
 
-### 네임스페이스 전체 삭제
+### 네임스페이스 전체 삭제 (모든 리소스 포함)
 
 ```bash
 kubectl delete namespace dustin-scan
@@ -373,11 +346,7 @@ k8s/
 │   └── kustomization.yaml
 │
 └── overlays/                 # 환경별 설정
-    ├── development/
-    │   ├── kustomization.yaml
-    │   ├── configmap-patch.yaml
-    │   └── secret-patch.yaml
-    └── production/
+    └── production/           # 운영 환경
         ├── kustomization.yaml
         └── configmap-patch.yaml
 ```
