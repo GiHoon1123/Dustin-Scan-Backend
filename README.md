@@ -98,3 +98,4 @@ PostgreSQL 사용
 - `balances` - 잔액 히스토리
 - `stats` - 통계
 # Test deployment with GitHub-hosted runner
+# Deployment test with t3.small and new IP
