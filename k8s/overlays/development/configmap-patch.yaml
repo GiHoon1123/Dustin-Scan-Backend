@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dustin-scan-config
+  namespace: dustin-scan
+data:
+  # 개발 환경 설정
+  NODE_ENV: 'development'
+
+  # 개발용 Chain URL (로컬 또는 개발 서버)
+  CHAIN_URL: 'http://localhost:3000'
+
+  # 데이터베이스 이름: dustin_scan_dev
+  # Secret에서 base64 인코딩: echo -n "dustin_scan_dev" | base64
+  # ZHVzdGluX3NjYW5fZGV2
