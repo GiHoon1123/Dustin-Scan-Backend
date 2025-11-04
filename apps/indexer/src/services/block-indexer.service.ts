@@ -6,7 +6,7 @@ import {
   hexToDecimal,
   hexToDecimalString,
 } from '@app/common';
-import { Block, Transaction, TransactionReceipt } from '@app/database';
+import { Block, Contract, Transaction, TransactionReceipt } from '@app/database';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -73,6 +73,16 @@ export class BlockIndexerService {
           // Receipt 저장
           const receipt = this.parseReceipt(receiptData);
           await manager.save(TransactionReceipt, receipt);
+
+          // 컨트랙트 배포 감지 및 저장
+          if (receiptData.contractAddress) {
+            await this.saveContract(
+              receiptData,
+              blockData,
+              txData,
+              manager,
+            );
+          }
         } else {
           // Receipt가 없는 경우 (pending 상태일 수도 있지만, 블록에 포함되었으면 있어야 함)
           this.logger.warn(`No receipt found for transaction ${txData.hash}`);
@@ -173,6 +183,68 @@ export class BlockIndexerService {
     receipt.logsBloom = receiptData.logsBloom;
 
     return receipt;
+  }
+
+  /**
+   * 컨트랙트 정보 저장 (컨트랙트 배포 감지 시)
+   *
+   * @param receiptData - Receipt 데이터
+   * @param blockData - 블록 데이터
+   * @param txData - 트랜잭션 데이터
+   * @param manager - TypeORM EntityManager
+   */
+  private async saveContract(
+    receiptData: ChainReceiptDto,
+    blockData: ChainBlockDto,
+    txData: ChainTransactionDto,
+    manager: any,
+  ): Promise<void> {
+    const contractAddress = receiptData.contractAddress;
+
+    if (!contractAddress) {
+      return;
+    }
+
+    // 이미 저장된 컨트랙트인지 확인
+    const existing = await manager.findOne(Contract, {
+      where: { address: contractAddress },
+    });
+
+    if (existing) {
+      this.logger.debug(`Contract ${contractAddress} already exists, skipping`);
+      return;
+    }
+
+    // 컨트랙트 바이트코드 조회 (체인에서)
+    let bytecode: string | null = null;
+    try {
+      bytecode = await this.chainClient.getContractBytecode(contractAddress);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to fetch bytecode for contract ${contractAddress}, continuing without it`,
+      );
+    }
+
+    // Contract 엔티티 생성
+    const contract = new Contract();
+    contract.address = contractAddress;
+    contract.deployer = receiptData.from;
+    contract.transactionHash = receiptData.transactionHash;
+    contract.blockNumber = hexToDecimalString(receiptData.blockNumber);
+    contract.blockHash = receiptData.blockHash;
+    contract.bytecode = bytecode;
+    contract.abi = null; // 나중에 UI에서 업데이트
+    contract.sourceCode = null;
+    contract.name = null;
+    contract.compilerVersion = null;
+    contract.optimization = null;
+    contract.timestamp = hexToDecimalString(blockData.timestamp);
+
+    await manager.save(Contract, contract);
+
+    this.logger.log(
+      `Contract deployed and saved: ${contractAddress} (tx: ${receiptData.transactionHash})`,
+    );
   }
 
   // 계정 정보는 더 이상 DB에 저장하지 않음

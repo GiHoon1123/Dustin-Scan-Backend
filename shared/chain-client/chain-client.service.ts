@@ -63,13 +63,20 @@ export class ChainClientService {
    * 블록 번호로 조회
    *
    * GET /block/number/:number
+   *
+   * @param blockNumber - 조회할 블록 번호
+   * @returns 블록 데이터 (없으면 null)
    */
-  async getBlockByNumber(blockNumber: number): Promise<ChainBlockDto> {
+  async getBlockByNumber(blockNumber: number): Promise<ChainBlockDto | null> {
     try {
       const response = await this.client.get<ChainBlockDto>(`/block/number/${blockNumber}`);
-      this.logger.debug(`Fetched block #${blockNumber}`);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // 404 에러는 블록이 아직 생성되지 않았음을 의미 (정상 상황, 조용히 null 반환)
+      if (error.response?.status === 404) {
+        return null;
+      }
+      // 그 외 에러는 로그만 남기고 던짐
       this.logger.error(`Failed to fetch block #${blockNumber}`, error);
       throw error;
     }
@@ -188,5 +195,42 @@ export class ChainClientService {
   async getLatestBlockNumber(): Promise<number> {
     const stats = await this.getChainStats();
     return stats.latestBlockNumber;
+  }
+
+  /**
+   * 컨트랙트 바이트코드 조회
+   *
+   * GET /contract/:address/bytecode
+   */
+  async getContractBytecode(address: string): Promise<string> {
+    try {
+      const response = await this.client.get<{ bytecode: string }>(`/contract/${address}/bytecode`);
+      return response.data.bytecode || '0x';
+    } catch (error) {
+      this.logger.error(`Failed to fetch contract bytecode for ${address}`, error);
+      return '0x'; // 없으면 빈 바이트코드
+    }
+  }
+
+  /**
+   * 컨트랙트 배포
+   *
+   * POST /contract/deploy
+   *
+   * @param bytecode - 컴파일된 컨트랙트 바이트코드
+   * @returns 트랜잭션 해시 및 상태
+   */
+  async deployContract(bytecode: string): Promise<{ hash: string; status: string }> {
+    try {
+      const response = await this.client.post<{ hash: string; status: string }>(
+        '/contract/deploy',
+        { bytecode },
+      );
+      this.logger.log(`Contract deployment transaction submitted: ${response.data.hash}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to deploy contract', error);
+      throw error;
+    }
   }
 }

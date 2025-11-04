@@ -1,0 +1,67 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Contract } from '../entities/contract.entity';
+
+/**
+ * Contract Repository
+ *
+ * 컨트랙트 데이터 접근 로직 캡슐화
+ */
+@Injectable()
+export class ContractRepository {
+  constructor(
+    @InjectRepository(Contract)
+    private readonly repository: Repository<Contract>,
+  ) {}
+
+  /**
+   * 컨트랙트 주소로 조회
+   */
+  async findByAddress(address: string): Promise<Contract | null> {
+    return this.repository.findOne({ where: { address } });
+  }
+
+  /**
+   * 배포자 주소로 조회
+   */
+  async findByDeployer(deployer: string): Promise<Contract[]> {
+    return this.repository.find({
+      where: { deployer },
+      order: { blockNumber: 'DESC' },
+    });
+  }
+
+  /**
+   * 컨트랙트 저장
+   */
+  async save(contract: Contract): Promise<Contract> {
+    return this.repository.save(contract);
+  }
+
+  /**
+   * 컨트랙트 업데이트 (ABI 등)
+   * 
+   * JSONB 필드를 포함한 업데이트를 위해 save 메서드 사용
+   */
+  async update(address: string, updates: Partial<Contract>): Promise<void> {
+    const contract = await this.findByAddress(address);
+    if (!contract) {
+      throw new Error(`Contract not found: ${address}`);
+    }
+    
+    // 업데이트할 필드만 병합
+    Object.assign(contract, updates);
+    
+    // save 메서드 사용 (JSONB 필드 업데이트 보장)
+    await this.repository.save(contract);
+  }
+
+  /**
+   * 전체 컨트랙트 개수 조회
+   */
+  async count(): Promise<number> {
+    return this.repository.count();
+  }
+}
+

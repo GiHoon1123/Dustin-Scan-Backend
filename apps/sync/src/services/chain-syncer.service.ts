@@ -55,8 +55,8 @@ export class ChainSyncerService {
    * 4. Indexer에게 전달
    * 5. 성공/실패 로그
    */
-  // @Cron(CronExpression.EVERY_SECOND)
-  @Cron(CronExpression.EVERY_30_SECONDS)
+  @Cron(CronExpression.EVERY_SECOND)
+  // @Cron(CronExpression.EVERY_30_SECONDS)
   async syncNextBlock() {
     // 이미 처리 중이면 스킵 (중복 실행 방지)
     if (this.isProcessing) {
@@ -71,21 +71,21 @@ export class ChainSyncerService {
       // 다음 처리할 블록 번호 계산
       const nextBlockNumber = await this.getNextBlockNumber();
 
-      this.logger.log(`Syncing block #${nextBlockNumber}...`);
-
       // Chain에서 블록 가져오기
       const blockData = await this.fetchBlock(nextBlockNumber);
 
       if (!blockData) {
-        // 블록이 아직 생성되지 않았으면 대기
-        this.logger.debug(`Block #${nextBlockNumber} not available yet`);
+        // 블록이 아직 생성되지 않았으면 조용히 대기
+        this.logger.log(`Block #${nextBlockNumber} not available yet`);
         return;
       }
+
+      this.logger.log(`Syncing block #${nextBlockNumber}...`);
 
       // Indexer에게 블록 전달
       await this.sendToIndexer(blockData);
     } catch (error) {
-      this.logger.error(`Failed to sync block: ${error.message}`, error.stack);
+      this.logger.error(`Failed to sync block: ${error.message}`);
       // 다음 크론에서 재시도하므로 예외를 던지지 않음
     } finally {
       // Lock 해제
@@ -128,13 +128,16 @@ export class ChainSyncerService {
    */
   private async fetchBlock(blockNumber: number): Promise<ChainBlockDto | null> {
     try {
-      return await this.chainClient.getBlockByNumber(blockNumber);
-    } catch (error) {
-      // 404 에러면 블록이 아직 생성 안됨
+      const blockData = await this.chainClient.getBlockByNumber(blockNumber);
+      // null이면 블록이 아직 생성되지 않음 (정상 상황, 조용히 스킵)
+      return blockData;
+    } catch (error: any) {
+      // ChainClientService에서 이미 404는 null로 처리했지만, 추가 안전장치
       if (error.response?.status === 404) {
         return null;
       }
-      // 그 외 에러는 던짐
+      // 그 외 에러는 로그만 남기고 다음 크론에서 재시도
+      this.logger.error(`Failed to fetch block #${blockNumber}: ${error.message}`);
       throw error;
     }
   }
