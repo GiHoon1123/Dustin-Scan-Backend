@@ -29,6 +29,23 @@ export class ContractsService {
   ) {}
 
   /**
+   * 컨트랙트 목록 조회 (페이징)
+   */
+  async getContracts(
+    page = 1,
+    limit = 20,
+  ): Promise<{ contracts: ContractResponseDto[]; totalCount: number }> {
+    const [contracts, totalCount] = await this.contractRepo.findPaginated(page, limit);
+
+    const contractsWithDto = contracts.map((contract) => this.toDto(contract));
+
+    return {
+      contracts: contractsWithDto,
+      totalCount,
+    };
+  }
+
+  /**
    * 컨트랙트 조회 (주소로)
    */
   async getContract(address: string): Promise<ContractResponseDto> {
@@ -344,6 +361,9 @@ export class ContractsService {
    * Entity → DTO 변환
    */
   private toDto(contract: Contract): ContractResponseDto {
+    // 바이트코드가 있고 `0x`가 아니면 배포 성공(1), 그 외는 실패/대기(0)
+    const status: 0 | 1 = contract.bytecode && contract.bytecode !== '0x' ? 1 : 0;
+
     return {
       address: contract.address,
       deployer: contract.deployer,
@@ -351,6 +371,7 @@ export class ContractsService {
       blockNumber: contract.blockNumber,
       blockHash: contract.blockHash,
       bytecode: contract.bytecode,
+      status,
       abi: contract.abi,
       name: contract.name,
       sourceCode: contract.sourceCode,

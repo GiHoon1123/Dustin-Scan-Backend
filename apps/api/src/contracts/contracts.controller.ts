@@ -1,7 +1,15 @@
-import { Body, Controller, Get, Param, Post, Put, Req } from '@nestjs/common';
-import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
+import {
+  ApiExtraModels,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import { Request } from 'express';
-import { CommonResponseDto } from '../common/dto';
+import { CommonResponseDto, PaginatedResponseDto } from '../common/dto';
 import { ContractsService } from './contracts.service';
 import { CallContractDto, CallContractResponseDto } from './dto/call-contract.dto';
 import { ContractResponseDto } from './dto/contract-response.dto';
@@ -10,9 +18,71 @@ import { ExecuteContractDto, ExecuteContractResponseDto } from './dto/execute-co
 import { UpdateContractAbiDto } from './dto/update-contract-abi.dto';
 
 @ApiTags('컨트랙트 (Contracts)')
+@ApiExtraModels(CommonResponseDto, ContractResponseDto, PaginatedResponseDto)
 @Controller('contracts')
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: '컨트랙트 목록 조회',
+    description: `
+모든 컨트랙트 목록을 조회합니다.
+- 최신 블록순으로 정렬 (blockNumber DESC)
+- 페이징 지원 (최대 100개)
+- 컨트랙트 기본 정보 포함
+    `,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: '페이지 번호 (기본값: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: '페이지당 항목 수 (기본값: 20, 최대: 100)',
+    example: 20,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '컨트랙트 목록 조회 성공',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(PaginatedResponseDto) },
+        {
+          properties: {
+            data: {
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $ref: getSchemaPath(ContractResponseDto) },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  async getContracts(
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ): Promise<PaginatedResponseDto<ContractResponseDto>> {
+    const actualLimit = Math.min(limit, 100);
+    const { contracts, totalCount } = await this.contractsService.getContracts(page, actualLimit);
+
+    return new PaginatedResponseDto(
+      contracts,
+      page,
+      actualLimit,
+      totalCount,
+      '컨트랙트 목록 조회 성공',
+    );
+  }
 
   @Get(':address')
   @ApiOperation({

@@ -41,6 +41,13 @@ export class ContractResponseDto {
   bytecode: string | null;
 
   @ApiProperty({
+    description: '컨트랙트 배포 상태 (1: 배포 성공, 0: 배포 실패/대기)',
+    example: 1,
+    enum: [0, 1],
+  })
+  status: 0 | 1;
+
+  @ApiProperty({
     description: '컨트랙트 ABI',
     required: false,
   })

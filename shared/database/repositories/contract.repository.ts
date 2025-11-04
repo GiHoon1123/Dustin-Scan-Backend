@@ -63,5 +63,21 @@ export class ContractRepository {
   async count(): Promise<number> {
     return this.repository.count();
   }
+
+  /**
+   * 컨트랙트 목록 페이징 조회 (최신순)
+   * @param page - 페이지 번호 (1부터 시작)
+   * @param limit - 페이지당 개수
+   * @returns [컨트랙트 배열, 전체 개수]
+   */
+  async findPaginated(page: number, limit: number): Promise<[Contract[], number]> {
+    const skip = (page - 1) * limit;
+
+    return this.repository.findAndCount({
+      order: { blockNumber: 'DESC', createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+  }
 }
 
