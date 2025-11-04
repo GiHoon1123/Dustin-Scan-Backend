@@ -42,6 +42,7 @@
     "axios": "^1.7.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "ethers": "^6.15.0",
     "pg": "^8.11.3",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",

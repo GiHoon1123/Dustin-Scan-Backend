@@ -233,4 +233,55 @@ export class ChainClientService {
       throw error;
     }
   }
+
+  /**
+   * 컨트랙트 메서드 실행 (상태 변경)
+   *
+   * POST /contract/execute
+   *
+   * @param to - 컨트랙트 주소
+   * @param data - ABI 인코딩된 함수 호출 데이터
+   * @returns 트랜잭션 해시 및 상태
+   */
+  async executeContract(to: string, data: string): Promise<{ hash: string; status: string }> {
+    try {
+      const response = await this.client.post<{ hash: string; status: string }>(
+        '/contract/execute',
+        { to, data },
+      );
+      this.logger.log(`Contract execution transaction submitted: ${response.data.hash}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to execute contract', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 컨트랙트 읽기 메서드 호출 (상태 변경 없음)
+   *
+   * POST /contract/call
+   *
+   * @param to - 컨트랙트 주소
+   * @param data - ABI 인코딩된 함수 호출 데이터
+   * @param from - 호출자 주소 (선택)
+   * @returns 실행 결과 및 가스 사용량
+   */
+  async callContract(
+    to: string,
+    data: string,
+    from?: string,
+  ): Promise<{ result: string; gasUsed: string }> {
+    try {
+      const response = await this.client.post<{ result: string; gasUsed: string }>(
+        '/contract/call',
+        { to, data, from },
+      );
+      this.logger.debug(`Contract call executed: ${to}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to call contract', error);
+      throw error;
+    }
+  }
 }

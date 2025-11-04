@@ -3,8 +3,10 @@ import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { CommonResponseDto } from '../common/dto';
 import { ContractsService } from './contracts.service';
+import { CallContractDto, CallContractResponseDto } from './dto/call-contract.dto';
 import { ContractResponseDto } from './dto/contract-response.dto';
 import { DeployContractDto, DeployContractResponseDto } from './dto/deploy-contract.dto';
+import { ExecuteContractDto, ExecuteContractResponseDto } from './dto/execute-contract.dto';
 import { UpdateContractAbiDto } from './dto/update-contract-abi.dto';
 
 @ApiTags('컨트랙트 (Contracts)')
@@ -129,5 +131,114 @@ export class ContractsController {
 
     const contract = await this.contractsService.updateContractAbi(address, dto);
     return CommonResponseDto.success(contract, '컨트랙트 ABI 업데이트 성공');
+  }
+
+  @Post(':address/execute')
+  @ApiOperation({
+    summary: '컨트랙트 메서드 실행 (상태 변경)',
+    description: `
+컨트랙트의 상태 변경 메서드를 실행합니다.
+
+**동작 순서:**
+1. 컨트랙트 ABI 조회 (DB에서)
+2. 메서드 이름으로 ABI에서 메서드 찾기
+3. 파라미터를 ABI 인코딩 (백엔드에서 처리)
+4. 코어에 트랜잭션 제출 (제네시스 계정 0번 사용)
+5. 트랜잭션 해시 반환
+
+**사용 예시:**
+\`\`\`json
+{
+  "methodName": "setValue",
+  "params": ["42"]
+}
+\`\`\`
+
+**주의:**
+- ABI가 먼저 등록되어 있어야 합니다 (PUT /contracts/:address/abi)
+- 메서드 이름은 ABI에 존재하는 함수여야 합니다
+- 파라미터는 순서대로 배열로 전달합니다
+- 상태 변경 메서드 (nonpayable, payable)만 가능합니다
+    `,
+  })
+  @ApiParam({
+    name: 'address',
+    description: '컨트랙트 주소',
+    example: '0x1234567890123456789012345678901234567890',
+  })
+  @ApiResponse({
+    status: 201,
+    description: '컨트랙트 메서드 실행 성공',
+    type: ExecuteContractResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'ABI가 없거나 메서드를 찾을 수 없음',
+  })
+  @ApiResponse({
+    status: 404,
+    description: '컨트랙트를 찾을 수 없음',
+  })
+  async executeContract(
+    @Param('address') address: string,
+    @Body() dto: ExecuteContractDto,
+  ): Promise<CommonResponseDto<ExecuteContractResponseDto>> {
+    const result = await this.contractsService.executeContract(address, dto);
+    return CommonResponseDto.success(result, '컨트랙트 메서드 실행 성공');
+  }
+
+  @Post(':address/call')
+  @ApiOperation({
+    summary: '컨트랙트 읽기 메서드 호출 (view, pure)',
+    description: `
+컨트랙트의 읽기 메서드를 호출합니다. 상태 변경 없이 실행되며 결과를 즉시 반환합니다.
+
+**동작 순서:**
+1. 컨트랙트 ABI 조회 (DB에서)
+2. 메서드 이름으로 ABI에서 메서드 찾기
+3. 파라미터를 ABI 인코딩 (백엔드에서 처리)
+4. 코어에 직접 호출 (트랜잭션 없이 실행)
+5. 결과 디코딩 후 반환
+
+**사용 예시:**
+\`\`\`json
+{
+  "methodName": "getValue",
+  "params": []
+}
+\`\`\`
+
+**주의:**
+- ABI가 먼저 등록되어 있어야 합니다 (PUT /contracts/:address/abi)
+- 메서드 이름은 ABI에 존재하는 함수여야 합니다
+- 파라미터는 순서대로 배열로 전달합니다
+- 읽기 메서드 (view, pure)만 가능합니다
+- 상태 변경 메서드는 POST /contracts/:address/execute를 사용하세요
+    `,
+  })
+  @ApiParam({
+    name: 'address',
+    description: '컨트랙트 주소',
+    example: '0x1234567890123456789012345678901234567890',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '컨트랙트 메서드 호출 성공',
+    type: CallContractResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'ABI가 없거나 메서드를 찾을 수 없음',
+  })
+  @ApiResponse({
+    status: 404,
+    description: '컨트랙트를 찾을 수 없음',
+  })
+  async callContract(
+    @Param('address') address: string,
+    @Body() dto: CallContractDto,
+  ): Promise<CommonResponseDto<CallContractResponseDto>> {
+    const result = await this.contractsService.callContract(address, dto);
+    return CommonResponseDto.success(result, '컨트랙트 메서드 호출 성공');
   }
 }
