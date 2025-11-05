@@ -1,11 +1,16 @@
-import { weiToDstn } from '@app/common';
+import { hexToDecimal, hexToDecimalString, weiToDstn } from '@app/common';
+import {
+  ChainReceiptDto,
+  ChainTransactionDto,
+} from '@app/common/types/chain-rpc.types';
+import { ChainClientService } from '@app/chain-client';
 import {
   Transaction,
   TransactionReceipt,
   TransactionReceiptRepository,
   TransactionRepository,
 } from '@app/database';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { TransactionResponseDto } from './dto/transaction-response.dto';
 
 /**
@@ -18,9 +23,12 @@ import { TransactionResponseDto } from './dto/transaction-response.dto';
  */
 @Injectable()
 export class TransactionsService {
+  private readonly logger = new Logger(TransactionsService.name);
+
   constructor(
     private readonly txRepo: TransactionRepository,
     private readonly receiptRepo: TransactionReceiptRepository,
+    private readonly chainClient: ChainClientService,
   ) {}
 
   /**
@@ -58,19 +66,38 @@ export class TransactionsService {
   /**
    * 트랜잭션 상세 조회 (해시로)
    *
+   * Fallback 방식:
+   * 1. DB에서 먼저 조회
+   * 2. 없으면 코어에서 조회하여 응답 (동일한 응답 형식)
+   *
    * @param hash - 트랜잭션 해시
    * @returns 트랜잭션 상세 (Receipt 포함)
    */
   async getTransactionByHash(hash: string): Promise<TransactionResponseDto> {
+    // 1. DB에서 먼저 조회
     const tx = await this.txRepo.findByHash(hash);
 
-    if (!tx) {
-      throw new NotFoundException(`Transaction ${hash} not found`);
+    if (tx) {
+      // DB에 있으면 Receipt 조회 후 반환
+      const receipt = await this.receiptRepo.findByTransactionHash(hash);
+      return this.toDto(tx, receipt);
     }
 
-    const receipt = await this.receiptRepo.findByTransactionHash(hash);
+    // 2. DB에 없으면 코어에서 조회
+    this.logger.log(`Transaction ${hash} not found in DB, fetching from chain...`);
+    try {
+      const chainTx = await this.chainClient.getTransaction(hash);
+      const chainReceipt = await this.chainClient.getReceipt(hash);
 
-    return this.toDto(tx, receipt);
+      // 코어 응답을 DTO 형식으로 변환
+      return this.chainDtoToResponseDto(chainTx, chainReceipt);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        throw new NotFoundException(`Transaction ${hash} not found`);
+      }
+      this.logger.error(`Failed to fetch transaction from chain: ${error.message}`, error);
+      throw new NotFoundException(`Transaction ${hash} not found`);
+    }
   }
 
   /**
@@ -141,6 +168,52 @@ export class TransactionsService {
       gasUsed: receipt?.gasUsed,
       cumulativeGasUsed: receipt?.cumulativeGasUsed,
       contractAddress: receipt?.contractAddress,
+    };
+  }
+
+  /**
+   * 코어 응답 → DTO 변환
+   *
+   * ChainTransactionDto + ChainReceiptDto → TransactionResponseDto
+   * DB 응답과 동일한 형식으로 변환
+   *
+   * @param chainTx - 코어에서 받은 트랜잭션 정보
+   * @param chainReceipt - 코어에서 받은 Receipt 정보 (nullable)
+   * @returns TransactionResponseDto
+   */
+  private chainDtoToResponseDto(
+    chainTx: ChainTransactionDto,
+    chainReceipt: ChainReceiptDto | null,
+  ): TransactionResponseDto {
+    // Hex String을 Decimal String으로 변환
+    const valueWei = hexToDecimalString(chainTx.value);
+    const timestamp = hexToDecimalString(chainTx.timestamp);
+    const nonce = hexToDecimal(chainTx.nonce);
+
+    // timestamp는 초 단위이므로 밀리초로 변환 (DB 형식과 일치)
+    const timestampSeconds = parseInt(timestamp);
+    const timestampMs = (timestampSeconds * 1000).toString();
+
+    return {
+      // 기본 트랜잭션 정보
+      hash: chainTx.hash,
+      blockHash: chainTx.blockHash || '',
+      blockNumber: chainTx.blockNumber ? hexToDecimalString(chainTx.blockNumber) : '',
+      from: chainTx.from,
+      to: chainTx.to,
+      value: weiToDstn(valueWei), // DSTN 단위
+      valueWei, // Wei 단위 (원본)
+      nonce,
+      timestamp: timestampMs, // Unix timestamp (milliseconds) - DB 형식과 일치
+      createdAt: new Date(timestampSeconds * 1000).toISOString(), // timestamp를 Date로 변환
+
+      // Receipt 정보 (있는 경우)
+      status: chainReceipt ? hexToDecimal(chainReceipt.status) : undefined,
+      gasUsed: chainReceipt ? hexToDecimalString(chainReceipt.gasUsed) : undefined,
+      cumulativeGasUsed: chainReceipt
+        ? hexToDecimalString(chainReceipt.cumulativeGasUsed)
+        : undefined,
+      contractAddress: chainReceipt?.contractAddress || undefined,
     };
   }
 }

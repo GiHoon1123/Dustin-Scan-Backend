@@ -1,3 +1,4 @@
+import { ChainClientModule } from '@app/chain-client';
 import {
   Transaction,
   TransactionReceipt,
@@ -10,7 +11,10 @@ import { TransactionsController } from './transactions.controller';
 import { TransactionsService } from './transactions.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Transaction, TransactionReceipt])],
+  imports: [
+    TypeOrmModule.forFeature([Transaction, TransactionReceipt]),
+    ChainClientModule,
+  ],
   controllers: [TransactionsController],
   providers: [TransactionsService, TransactionRepository, TransactionReceiptRepository],
 })
