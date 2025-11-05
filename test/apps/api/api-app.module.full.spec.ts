@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   Block,
   Contract,
-  ContractMethod,
   Transaction,
   TransactionReceipt,
 } from '@app/database';
@@ -24,7 +23,7 @@ describe('ApiAppModule Full Coverage', () => {
         username: config.get('DB_USERNAME'),
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_DATABASE'),
-        entities: [Block, Transaction, TransactionReceipt, Contract, ContractMethod],
+        entities: [Block, Transaction, TransactionReceipt, Contract],
         synchronize: config.get('DB_SYNCHRONIZE') === 'true',
         logging: false,
       }),

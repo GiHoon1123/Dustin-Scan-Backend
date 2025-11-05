@@ -5,7 +5,7 @@
  */
 
 // 모든 import 실행
-import { Block, Contract, ContractMethod, Transaction, TransactionReceipt } from '@app/database';
+import { Block, Contract, Transaction, TransactionReceipt } from '@app/database';
 import { SharedModule } from '@app/shared';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TerminusModule } from '@nestjs/terminus';
@@ -38,7 +38,7 @@ describe('ApiAppModule Execution', () => {
         username: config.get('DB_USERNAME'),
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_DATABASE'),
-        entities: [Block, Transaction, TransactionReceipt, Contract, ContractMethod],
+        entities: [Block, Transaction, TransactionReceipt, Contract],
         synchronize: config.get('DB_SYNCHRONIZE') === 'true',
         logging: false,
       }),

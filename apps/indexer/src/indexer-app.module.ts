@@ -25,8 +25,8 @@ import { BlockIndexerService } from './services/block-indexer.service';
         database: config.get('DB_DATABASE'),
         entities: [Block, Transaction, TransactionReceipt, Contract],
         synchronize: config.get('DB_SYNCHRONIZE') === 'true',
-        // 개발 환경에서는 매번 DB 스키마 초기화 (데이터 보존을 위해 주석 처리)
-        // dropSchema: process.env.NODE_ENV === 'development',
+        // 개발 환경에서는 매번 DB 스키마 초기화
+        dropSchema: process.env.NODE_ENV === 'development' && config.get('DB_DROP_SCHEMA') === 'true',
         logging: false, // DB 쿼리 로깅 비활성화
       }),
     }),

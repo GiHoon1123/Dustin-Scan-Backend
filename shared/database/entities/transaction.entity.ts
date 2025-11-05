@@ -1,8 +1,12 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('transactions')
 export class Transaction {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Index({ unique: true })
+  @Column()
   hash: string;
 
   @Index()

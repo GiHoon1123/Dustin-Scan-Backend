@@ -1,10 +1,5 @@
 import { ChainClientService } from '@app/chain-client';
-import {
-  Contract,
-  ContractMethod,
-  ContractMethodRepository,
-  ContractRepository,
-} from '@app/database';
+import { Contract, ContractRepository } from '@app/database';
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Interface } from 'ethers';
 import { CallContractDto, CallContractResponseDto } from './dto/call-contract.dto';
@@ -24,7 +19,6 @@ export class ContractsService {
 
   constructor(
     private readonly contractRepo: ContractRepository,
-    private readonly methodRepo: ContractMethodRepository,
     private readonly chainClient: ChainClientService,
   ) {}
 
@@ -148,22 +142,15 @@ export class ContractsService {
     }
 
     this.logger.log(`[ABI Update] Verified: ABI is ${updated.abi ? 'present' : 'null'}`);
-
-    // ABI가 업데이트된 경우 메서드 정보 캐싱
-    if (updates.abi && updated.abi) {
-      await this.cacheContractMethods(address, updated.abi);
-    }
-
     return this.toDto(updated);
   }
 
   /**
    * 컨트랙트 메서드 실행
    *
-   * 1. DB에서 캐시된 메서드 정보 조회
-   * 2. 없으면 ABI에서 파싱 후 캐싱
-   * 3. 파라미터 인코딩
-   * 4. 코어에 전달
+   * 1. ABI 파싱
+   * 2. 파라미터 인코딩
+   * 3. 코어에 전달
    */
   async executeContract(
     address: string,
@@ -183,34 +170,18 @@ export class ContractsService {
     }
 
     try {
-      // 3. DB에서 캐시된 메서드 조회
-      let cachedMethod = await this.methodRepo.findByContractAndMethod(address, dto.methodName);
+      // 3. ABI 파싱 및 인코딩
+      const iface = new Interface(contract.abi);
+      const method = iface.getFunction(dto.methodName);
 
-      // 4. 캐시가 없으면 ABI에서 파싱 후 캐싱
-      if (!cachedMethod) {
-        this.logger.log(
-          `[Method Cache] Cache miss for ${address}.${dto.methodName}, parsing ABI...`,
-        );
-        const iface = new Interface(contract.abi);
-        const method = iface.getFunction(dto.methodName);
-
-        if (!method) {
-          throw new BadRequestException(`Method "${dto.methodName}" not found in contract ABI`);
-        }
-
-        // 메서드 정보 캐싱 (fragment는 이미 FunctionFragment 타입)
-        cachedMethod = this.cacheMethod(address, method);
-        await this.methodRepo.save(cachedMethod);
+      if (!method) {
+        throw new BadRequestException(`Method "${dto.methodName}" not found in contract ABI`);
       }
 
-      // 5. 캐시된 시그니처로 파라미터만 인코딩 (시그니처는 재사용)
-      const iface = new Interface(contract.abi);
+      // 4. 파라미터 인코딩
       const encodedData = iface.encodeFunctionData(dto.methodName, dto.params);
-      this.logger.log(
-        `[Method Cache] Using cached method "${dto.methodName}" (${cachedMethod.methodSignature})`,
-      );
 
-      // 6. 코어에 전달
+      // 5. 코어에 전달
       const result = await this.chainClient.executeContract(address, encodedData);
 
       return {
@@ -229,11 +200,10 @@ export class ContractsService {
   /**
    * 컨트랙트 읽기 메서드 호출 (view, pure)
    *
-   * 1. DB에서 캐시된 메서드 정보 조회
-   * 2. 없으면 ABI에서 파싱 후 캐싱
-   * 3. 파라미터 인코딩
-   * 4. 코어에 호출 (트랜잭션 없이 직접 실행)
-   * 5. 결과 디코딩
+   * 1. ABI 파싱
+   * 2. 파라미터 인코딩
+   * 3. 코어에 호출 (트랜잭션 없이 직접 실행)
+   * 4. 결과 디코딩
    */
   async callContract(address: string, dto: CallContractDto): Promise<CallContractResponseDto> {
     // 1. 컨트랙트 조회
@@ -250,37 +220,21 @@ export class ContractsService {
     }
 
     try {
-      // 3. DB에서 캐시된 메서드 조회
-      let cachedMethod = await this.methodRepo.findByContractAndMethod(address, dto.methodName);
+      // 3. ABI 파싱 및 인코딩
+      const iface = new Interface(contract.abi);
+      const method = iface.getFunction(dto.methodName);
 
-      // 4. 캐시가 없으면 ABI에서 파싱 후 캐싱
-      if (!cachedMethod) {
-        this.logger.log(
-          `[Method Cache] Cache miss for ${address}.${dto.methodName}, parsing ABI...`,
-        );
-        const iface = new Interface(contract.abi);
-        const method = iface.getFunction(dto.methodName);
-
-        if (!method) {
-          throw new BadRequestException(`Method "${dto.methodName}" not found in contract ABI`);
-        }
-
-        // 메서드 정보 캐싱 (fragment는 이미 FunctionFragment 타입)
-        cachedMethod = this.cacheMethod(address, method);
-        await this.methodRepo.save(cachedMethod);
+      if (!method) {
+        throw new BadRequestException(`Method "${dto.methodName}" not found in contract ABI`);
       }
 
-      // 5. 파라미터 인코딩
-      const iface = new Interface(contract.abi);
+      // 4. 파라미터 인코딩
       const encodedData = iface.encodeFunctionData(dto.methodName, dto.params);
-      this.logger.log(
-        `[Method Cache] Calling method "${dto.methodName}" (${cachedMethod.methodSignature})`,
-      );
 
-      // 6. 코어에 호출 (트랜잭션 없이 직접 실행)
+      // 5. 코어에 호출 (트랜잭션 없이 직접 실행)
       const result = await this.chainClient.callContract(address, encodedData);
 
-      // 7. 결과 디코딩
+      // 6. 결과 디코딩
       let decodedResult: any = null;
       try {
         const decoded = iface.decodeFunctionResult(dto.methodName, result.result);
@@ -303,58 +257,6 @@ export class ContractsService {
       this.logger.error(`Failed to call contract method: ${error.message}`, error);
       throw new BadRequestException(`Failed to call contract method: ${error.message}`);
     }
-  }
-
-  /**
-   * 컨트랙트 메서드 정보 캐싱 (ABI 업데이트 시)
-   */
-  private async cacheContractMethods(address: string, abi: any[]): Promise<void> {
-    try {
-      // 기존 메서드 삭제
-      await this.methodRepo.deleteByContractAddress(address);
-
-      // ABI 파싱
-      const iface = new Interface(abi);
-      const methods: ContractMethod[] = [];
-
-      // 모든 함수 메서드 추출
-      for (const fragment of iface.fragments) {
-        if (fragment.type === 'function') {
-          const method = this.cacheMethod(address, fragment);
-          methods.push(method);
-        }
-      }
-
-      if (methods.length > 0) {
-        await this.methodRepo.saveMany(methods);
-        this.logger.log(`[Method Cache] Cached ${methods.length} methods for contract ${address}`);
-      }
-    } catch (error: any) {
-      this.logger.error(`Failed to cache contract methods: ${error.message}`, error);
-      // 메서드 캐싱 실패해도 ABI 업데이트는 성공으로 처리
-    }
-  }
-
-  /**
-   * 개별 메서드 캐싱
-   */
-  private cacheMethod(address: string, fragment: any): ContractMethod {
-    const iface = new Interface([fragment]);
-    const methodSignature = iface.getFunction(fragment.name)?.selector || '';
-
-    const method = new ContractMethod();
-    method.contractAddress = address;
-    method.methodName = fragment.name;
-    method.methodSignature = methodSignature;
-    method.inputs = fragment.inputs.map((input: any) => ({
-      name: input.name || '',
-      type: input.type,
-      internalType: input.internalType,
-    }));
-    method.type = fragment.type;
-    method.stateMutability = fragment.stateMutability || null;
-
-    return method;
   }
 
   /**

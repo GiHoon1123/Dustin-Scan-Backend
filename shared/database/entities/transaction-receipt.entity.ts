@@ -1,4 +1,4 @@
-import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 /**
  * TransactionReceipt Entity
@@ -11,11 +11,15 @@ import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
  */
 @Entity('transaction_receipts')
 export class TransactionReceipt {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   /**
-   * 트랜잭션 해시 (Primary Key)
+   * 트랜잭션 해시 (Unique)
    * Transaction과 1:1 관계
    */
-  @PrimaryColumn()
+  @Index({ unique: true })
+  @Column()
   transactionHash: string;
 
   /**

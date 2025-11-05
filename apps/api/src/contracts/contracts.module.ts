@@ -1,9 +1,4 @@
-import {
-  Contract,
-  ContractMethod,
-  ContractMethodRepository,
-  ContractRepository,
-} from '@app/database';
+import { Contract, ContractRepository } from '@app/database';
 import { SharedModule } from '@app/shared';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -12,11 +7,11 @@ import { ContractsService } from './contracts.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Contract, ContractMethod]),
+    TypeOrmModule.forFeature([Contract]),
     SharedModule,
   ],
   controllers: [ContractsController],
-  providers: [ContractsService, ContractRepository, ContractMethodRepository],
+  providers: [ContractsService, ContractRepository],
 })
 export class ContractsModule {}
 

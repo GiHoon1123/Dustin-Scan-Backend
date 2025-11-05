@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 /**
  * Contract Entity
@@ -9,11 +9,15 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm'
  */
 @Entity('contracts')
 export class Contract {
+  @PrimaryGeneratedColumn()
+  id: number;
+
   /**
-   * 컨트랙트 주소 (Primary Key)
+   * 컨트랙트 주소 (Unique)
    * Receipt의 contractAddress와 동일
    */
-  @PrimaryColumn()
+  @Index({ unique: true })
+  @Column()
   address: string;
 
   /**
@@ -98,4 +102,3 @@ export class Contract {
   @CreateDateColumn()
   createdAt: Date;
 }
-

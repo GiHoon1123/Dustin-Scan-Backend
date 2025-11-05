@@ -5,7 +5,6 @@ import { ApiAppModule } from '../../../apps/api/src/api-app.module';
 import {
   Block,
   Contract,
-  ContractMethod,
   Transaction,
   TransactionReceipt,
 } from '@app/database';
@@ -53,7 +52,7 @@ describe('ApiAppModule Coverage', () => {
       username: config.get('DB_USERNAME'),
       password: config.get('DB_PASSWORD'),
       database: config.get('DB_DATABASE'),
-      entities: [Block, Transaction, TransactionReceipt, Contract, ContractMethod],
+      entities: [Block, Transaction, TransactionReceipt, Contract],
       synchronize: config.get('DB_SYNCHRONIZE') === 'true',
       logging: false,
     });
@@ -69,7 +68,6 @@ describe('ApiAppModule Coverage', () => {
     expect(result.entities).toContain(Transaction);
     expect(result.entities).toContain(TransactionReceipt);
     expect(result.entities).toContain(Contract);
-    expect(result.entities).toContain(ContractMethod);
     expect(result.synchronize).toBe(false);
     expect(result.logging).toBe(false);
   });
@@ -101,7 +99,7 @@ describe('ApiAppModule Coverage', () => {
         username: config.get('DB_USERNAME'),
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_DATABASE'),
-        entities: [Block, Transaction, TransactionReceipt, Contract, ContractMethod],
+        entities: [Block, Transaction, TransactionReceipt, Contract],
         synchronize: config.get('DB_SYNCHRONIZE') === 'true',
         logging: false,
       }),
