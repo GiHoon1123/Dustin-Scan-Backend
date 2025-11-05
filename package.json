@@ -84,7 +84,8 @@
       {
         "displayName": "api",
         "testMatch": [
-          "<rootDir>/apps/api/**/*.spec.ts"
+          "<rootDir>/apps/api/**/*.spec.ts",
+          "<rootDir>/test/api/**/*.spec.ts"
         ],
         "transform": {
           "^.+\\.(t|j)s$": "ts-jest"
@@ -99,7 +100,8 @@
       {
         "displayName": "indexer",
         "testMatch": [
-          "<rootDir>/apps/indexer/**/*.spec.ts"
+          "<rootDir>/apps/indexer/**/*.spec.ts",
+          "<rootDir>/test/indexer/**/*.spec.ts"
         ],
         "transform": {
           "^.+\\.(t|j)s$": "ts-jest"
@@ -114,7 +116,8 @@
       {
         "displayName": "sync",
         "testMatch": [
-          "<rootDir>/apps/sync/**/*.spec.ts"
+          "<rootDir>/apps/sync/**/*.spec.ts",
+          "<rootDir>/test/sync/**/*.spec.ts"
         ],
         "transform": {
           "^.+\\.(t|j)s$": "ts-jest"
@@ -129,7 +132,9 @@
       {
         "displayName": "libs",
         "testMatch": [
-          "<rootDir>/shared/**/*.spec.ts"
+          "<rootDir>/shared/**/*.spec.ts",
+          "<rootDir>/test/shared/**/*.spec.ts",
+          "<rootDir>/test/apps/**/*.spec.ts"
         ],
         "transform": {
           "^.+\\.(t|j)s$": "ts-jest"

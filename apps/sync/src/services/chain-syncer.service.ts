@@ -55,8 +55,8 @@ export class ChainSyncerService {
    * 4. Indexer에게 전달
    * 5. 성공/실패 로그
    */
-  @Cron(CronExpression.EVERY_SECOND)
-  // @Cron(CronExpression.EVERY_30_SECONDS)
+  // @Cron(CronExpression.EVERY_SECOND)
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async syncNextBlock() {
     // 이미 처리 중이면 스킵 (중복 실행 방지)
     if (this.isProcessing) {

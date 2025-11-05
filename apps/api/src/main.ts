@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ApiAppModule } from './api-app.module';
 
-async function bootstrap() {
+export async function bootstrap() {
   const app = await NestFactory.create(ApiAppModule);
 
   // CORS 설정
@@ -34,4 +34,6 @@ async function bootstrap() {
   await app.listen(port);
 }
 
-bootstrap();
+if (require.main === module) {
+  bootstrap();
+}

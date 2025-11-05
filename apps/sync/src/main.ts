@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { SyncAppModule } from './sync-app.module';
 
-async function bootstrap() {
+export async function bootstrap() {
   const app = await NestFactory.create(SyncAppModule);
 
   const port = process.env.SYNC_PORT || 4002;
@@ -13,4 +13,6 @@ async function bootstrap() {
   `);
 }
 
-bootstrap();
+if (require.main === module) {
+  bootstrap();
+}
