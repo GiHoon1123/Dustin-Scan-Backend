@@ -1,10 +1,11 @@
 name: Deploy to Kubernetes
 
-# main 브랜치로 푸시될 때 자동 실행
+# main 브랜치로 푸시될 때 자동 실행 또는 수동 실행
 on:
   push:
     branches:
       - main
+  workflow_dispatch: # GitHub Actions UI에서 수동 실행 가능
 
 env:
   DOCKER_IMAGE: dustin-scan-backend

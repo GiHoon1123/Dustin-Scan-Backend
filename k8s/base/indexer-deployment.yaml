@@ -18,6 +18,14 @@ spec:
         app: dustin-scan
         component: indexer
     spec:
+      # 워커 노드에만 스케줄링 (control-plane 노드 제외)
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: DoesNotExist
       containers:
         - name: indexer
           image: deukchunjang/dustin-scan-backend:latest
