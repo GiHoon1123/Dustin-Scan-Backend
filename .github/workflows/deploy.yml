@@ -68,8 +68,18 @@ jobs:
       - name: Configure kubectl
         run: |
           mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+          # kubeconfig 디코딩 및 유효성 검사
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config || {
+            echo "❌ Base64 디코딩 실패, plain text로 시도..."
+            echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
+          }
+          # kubeconfig 유효성 확인
+          if ! grep -q "apiVersion:" $HOME/.kube/config; then
+            echo "❌ kubeconfig 형식이 올바르지 않습니다"
+            exit 1
+          fi
           chmod 600 $HOME/.kube/config
+          echo "✅ kubeconfig 설정 완료"
 
       # 9. Kubernetes에 배포 (이미지 업데이트)
       - name: Deploy to Kubernetes
