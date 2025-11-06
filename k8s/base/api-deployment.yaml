@@ -34,6 +34,7 @@ spec:
           ports:
             - name: http
               containerPort: 4000
+              hostPort: 4000
               protocol: TCP
           env:
             # ConfigMap에서 환경변수 가져오기
