@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import {
   ApiExtraModels,
   ApiOperation,
@@ -8,7 +8,6 @@ import {
   ApiTags,
   getSchemaPath,
 } from '@nestjs/swagger';
-import { Request } from 'express';
 import { CommonResponseDto, PaginatedResponseDto } from '../common/dto';
 import { ContractsService } from './contracts.service';
 import { CallContractDto, CallContractResponseDto } from './dto/call-contract.dto';
@@ -186,19 +185,8 @@ export class ContractsController {
   })
   async updateContractAbi(
     @Param('address') address: string,
-    @Req() req: Request,
+    @Body() dto: UpdateContractAbiDto,
   ): Promise<CommonResponseDto<ContractResponseDto>> {
-    // ValidationPipe를 우회하기 위해 raw body를 직접 사용
-    let dto: UpdateContractAbiDto;
-
-    // 요청 body가 배열인 경우 (직접 ABI 배열을 보낸 경우)
-    if (Array.isArray(req.body)) {
-      dto = { abi: req.body };
-    } else {
-      // 객체인 경우 그대로 사용
-      dto = req.body as UpdateContractAbiDto;
-    }
-
     const contract = await this.contractsService.updateContractAbi(address, dto);
     return CommonResponseDto.success(contract, '컨트랙트 ABI 업데이트 성공');
   }
