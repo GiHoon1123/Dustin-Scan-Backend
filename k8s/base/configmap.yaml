@@ -21,8 +21,8 @@ data:
   # 워커 노드 IP로 직접 접근 (도커 컨테이너는 호스트 포트 3000에 바인딩됨)
   CHAIN_URL: 'http://172.31.45.89:3000'
 
-  # Indexer Service URL (같은 네임스페이스이므로 서비스 이름만 사용)
-  INDEXER_URL: 'http://prod-indexer-service:4001'
+  # Indexer Service URL (FQDN: 서비스명.네임스페이스)
+  INDEXER_URL: 'http://prod-indexer-service.dustin-scan:4001'
 
   # Healthcheck 포트
   HEALTHCHECK_PORT: '4000'
