@@ -20,8 +20,8 @@ data:
   # Chain RPC URL (운영 환경 기본값, overlay에서 변경 가능)
   CHAIN_URL: 'http://dustin-chain-service:3000'
 
-  # Indexer Service URL (ClusterIP로 내부 통신)
-  INDEXER_URL: 'http://prod-indexer-service:4001'
+  # Indexer Service URL (ClusterIP로 내부 통신, 네임스페이스 포함)
+  INDEXER_URL: 'http://prod-indexer-service.dustin-scan:4001'
 
   # Healthcheck 포트
   HEALTHCHECK_PORT: '4000'
