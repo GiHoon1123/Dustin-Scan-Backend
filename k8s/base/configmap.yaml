@@ -17,8 +17,9 @@ data:
   DB_USERNAME: 'root'
   DB_SYNCHRONIZE: 'false'
 
-  # Chain RPC URL (운영 환경 기본값, overlay에서 변경 가능)
-  CHAIN_URL: 'http://dustin-chain-service:3000'
+  # Chain RPC URL (도커 컨테이너로 실행 중인 Dustin-Chain에 접근)
+  # 워커 노드 IP로 직접 접근 (도커 컨테이너는 호스트 포트 3000에 바인딩됨)
+  CHAIN_URL: 'http://172.31.45.89:3000'
 
   # Indexer Service URL (ClusterIP로 내부 통신, 네임스페이스 포함)
   INDEXER_URL: 'http://prod-indexer-service.dustin-scan:4001'
