@@ -8,6 +8,11 @@ metadata:
     component: api
 spec:
   replicas: 1 # 초기 1개 파드, HPA로 자동 조절
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0 # hostPort 충돌 방지: 새 파드 생성 전에 old 파드 종료
+      maxUnavailable: 1 # 한 번에 하나씩만 교체
   selector:
     matchLabels:
       app: dustin-scan
