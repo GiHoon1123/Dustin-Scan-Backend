@@ -7,12 +7,12 @@ metadata:
     app: dustin-scan
     component: api
 spec:
-  replicas: 1 # 초기 1개 파드, HPA로 자동 조절
+  replicas: 2 # 무중단 배포를 위해 2개 파드 유지
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 0 # hostPort 충돌 방지: 새 파드 생성 전에 old 파드 종료
-      maxUnavailable: 1 # 한 번에 하나씩만 교체
+      maxSurge: 1 # 새 파드 1개 추가 허용 (무중단 배포)
+      maxUnavailable: 0 # 서비스 중단 없음
   selector:
     matchLabels:
       app: dustin-scan
@@ -39,7 +39,6 @@ spec:
           ports:
             - name: http
               containerPort: 4000
-              hostPort: 4000
               protocol: TCP
           env:
             # ConfigMap에서 환경변수 가져오기
