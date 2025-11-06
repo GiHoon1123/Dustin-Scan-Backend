@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import {
+  ApiBody,
   ApiExtraModels,
   ApiOperation,
   ApiParam,
@@ -17,7 +18,7 @@ import { ExecuteContractDto, ExecuteContractResponseDto } from './dto/execute-co
 import { UpdateContractAbiDto } from './dto/update-contract-abi.dto';
 
 @ApiTags('컨트랙트 (Contracts)')
-@ApiExtraModels(CommonResponseDto, ContractResponseDto, PaginatedResponseDto)
+@ApiExtraModels(CommonResponseDto, ContractResponseDto, PaginatedResponseDto, UpdateContractAbiDto)
 @Controller('contracts')
 export class ContractsController {
   constructor(private readonly contractsService: ContractsService) {}
@@ -174,6 +175,26 @@ export class ContractsController {
     description: '컨트랙트 주소',
     example: '0x1234567890123456789012345678901234567890',
   })
+  @ApiBody({
+    type: UpdateContractAbiDto,
+    description: '컨트랙트 ABI 및 메타데이터',
+    examples: {
+      example1: {
+        summary: 'ABI만 업데이트',
+        value: {
+          abi: [
+            {
+              inputs: [],
+              name: 'getOwner',
+              outputs: [{ internalType: 'address', name: '', type: 'address' }],
+              stateMutability: 'view',
+              type: 'function',
+            },
+          ],
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 200,
     description: 'ABI 업데이트 성공',
@@ -185,8 +206,17 @@ export class ContractsController {
   })
   async updateContractAbi(
     @Param('address') address: string,
-    @Body() dto: UpdateContractAbiDto,
+    @Body() body: UpdateContractAbiDto | any[],
   ): Promise<CommonResponseDto<ContractResponseDto>> {
+    // 요청 body가 배열인 경우 (직접 ABI 배열을 보낸 경우)
+    let dto: UpdateContractAbiDto;
+    if (Array.isArray(body)) {
+      dto = { abi: body };
+    } else {
+      // 객체인 경우 그대로 사용
+      dto = body as UpdateContractAbiDto;
+    }
+
     const contract = await this.contractsService.updateContractAbi(address, dto);
     return CommonResponseDto.success(contract, '컨트랙트 ABI 업데이트 성공');
   }

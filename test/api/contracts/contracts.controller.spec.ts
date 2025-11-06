@@ -7,7 +7,6 @@ import { DeployContractDto, DeployContractResponseDto } from '../../../apps/api/
 import { ExecuteContractDto, ExecuteContractResponseDto } from '../../../apps/api/src/contracts/dto/execute-contract.dto';
 import { UpdateContractAbiDto } from '../../../apps/api/src/contracts/dto/update-contract-abi.dto';
 import { CommonResponseDto, PaginatedResponseDto } from '../../../apps/api/src/common/dto';
-import { Request } from 'express';
 
 describe('ContractsController', () => {
   let controller: ContractsController;
@@ -110,32 +109,38 @@ describe('ContractsController', () => {
   });
 
   describe('updateContractAbi', () => {
-    it('should update contract ABI with object body', async () => {
+    it('should update contract ABI with DTO', async () => {
       const updatedContract = { ...mockContract, abi: [{ type: 'function' }] };
       service.updateContractAbi.mockResolvedValue(updatedContract);
 
-      const req = {
-        body: { abi: [{ type: 'function' }] },
-      } as Request;
+      const dto: UpdateContractAbiDto = { abi: [{ type: 'function' }] };
 
-      const result = await controller.updateContractAbi('0x123', req);
+      const result = await controller.updateContractAbi('0x123', dto);
 
       expect(result.data.abi).toBeDefined();
-      expect(service.updateContractAbi).toHaveBeenCalled();
+      expect(service.updateContractAbi).toHaveBeenCalledWith('0x123', dto);
     });
 
-    it('should update contract ABI with array body', async () => {
-      const updatedContract = { ...mockContract, abi: [{ type: 'function' }] };
+    it('should update contract ABI with optional fields', async () => {
+      const updatedContract = {
+        ...mockContract,
+        abi: [{ type: 'function' }],
+        name: 'MyContract',
+        compilerVersion: '0.8.20',
+      };
       service.updateContractAbi.mockResolvedValue(updatedContract);
 
-      const req = {
-        body: [{ type: 'function' }],
-      } as Request;
+      const dto: UpdateContractAbiDto = {
+        abi: [{ type: 'function' }],
+        name: 'MyContract',
+        compilerVersion: '0.8.20',
+      };
 
-      const result = await controller.updateContractAbi('0x123', req);
+      const result = await controller.updateContractAbi('0x123', dto);
 
       expect(result.data.abi).toBeDefined();
-      expect(service.updateContractAbi).toHaveBeenCalled();
+      expect(result.data.name).toBe('MyContract');
+      expect(service.updateContractAbi).toHaveBeenCalledWith('0x123', dto);
     });
   });
 
