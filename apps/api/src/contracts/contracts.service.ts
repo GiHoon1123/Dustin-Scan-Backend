@@ -240,6 +240,18 @@ export class ContractsService {
         const decoded = iface.decodeFunctionResult(dto.methodName, result.result);
         // 단일 반환값이면 그대로, 배열이면 배열로 반환
         decodedResult = decoded.length === 1 ? decoded[0] : decoded;
+        
+        // 주소 타입인 경우 소문자로 변환 (ethers.js가 체크섬 형식으로 변환하는 것 방지)
+        if (typeof decodedResult === 'string' && decodedResult.startsWith('0x') && decodedResult.length === 42) {
+          decodedResult = decodedResult.toLowerCase();
+        } else if (Array.isArray(decodedResult)) {
+          decodedResult = decodedResult.map((val: any) => {
+            if (typeof val === 'string' && val.startsWith('0x') && val.length === 42) {
+              return val.toLowerCase();
+            }
+            return val;
+          });
+        }
       } catch (decodeError) {
         this.logger.warn(`Failed to decode result: ${decodeError}`);
         // 디코딩 실패해도 원본 hex string 반환
