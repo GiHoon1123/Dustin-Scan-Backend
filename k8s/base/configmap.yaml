@@ -21,9 +21,8 @@ data:
   # 워커 노드 IP로 직접 접근 (도커 컨테이너는 호스트 포트 3000에 바인딩됨)
   CHAIN_URL: 'http://172.31.45.89:3000'
 
-  # Indexer Service URL (ClusterIP 직접 사용 - k3s DNS 이슈 해결)
-  # TODO: DNS 해결되면 서비스 이름으로 변경 가능
-  INDEXER_URL: 'http://10.43.132.21:4001'
+  # Indexer Service URL (같은 네임스페이스 내 서비스 이름 사용)
+  INDEXER_URL: 'http://prod-indexer-service:4001'
 
   # Healthcheck 포트
   HEALTHCHECK_PORT: '4000'
