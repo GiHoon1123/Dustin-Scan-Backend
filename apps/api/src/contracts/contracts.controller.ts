@@ -72,15 +72,94 @@ export class ContractsController {
     @Query('page') page = 1,
     @Query('limit') limit = 20,
   ): Promise<PaginatedResponseDto<ContractResponseDto>> {
-    const actualLimit = Math.min(limit, 100);
-    const { contracts, totalCount } = await this.contractsService.getContracts(page, actualLimit);
+    const parsedPage = Number(page) || 1;
+    const parsedLimit = Number(limit) || 20;
+    const currentPage = parsedPage < 1 ? 1 : parsedPage;
+    const actualLimit = Math.min(parsedLimit < 1 ? 20 : parsedLimit, 100);
+    const { contracts, totalCount } = await this.contractsService.getContracts(
+      currentPage,
+      actualLimit,
+    );
 
     return new PaginatedResponseDto(
       contracts,
-      page,
+      currentPage,
       actualLimit,
       totalCount,
       '컨트랙트 목록 조회 성공',
+    );
+  }
+
+  @Get('deployer/:address')
+  @ApiOperation({
+    summary: '특정 유저가가 배포한 컨트랙트 목록 조회',
+    description: `
+지갑 주소를 기준으로 해당 계정이 배포한 컨트랙트 목록을 최신순으로 조회합니다.
+- 배포 트랜잭션 기준 내림차순 정렬
+- 페이징 지원 (최대 100개)
+    `,
+  })
+  @ApiParam({
+    name: 'address',
+    description: '배포자 지갑 주소 (EIP-55 또는 소문자)',
+    example: '0x1234567890123456789012345678901234567890',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: '페이지 번호 (기본값: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: '페이지당 항목 수 (기본값: 20, 최대: 100)',
+    example: 20,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '배포한 컨트랙트 목록 조회 성공',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(PaginatedResponseDto) },
+        {
+          properties: {
+            data: {
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $ref: getSchemaPath(ContractResponseDto) },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  async getContractsByDeployer(
+    @Param('address') address: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ): Promise<PaginatedResponseDto<ContractResponseDto>> {
+    const parsedPage = Number(page) || 1;
+    const parsedLimit = Number(limit) || 20;
+    const currentPage = parsedPage < 1 ? 1 : parsedPage;
+    const actualLimit = Math.min(parsedLimit < 1 ? 20 : parsedLimit, 100);
+    const { contracts, totalCount } = await this.contractsService.getContractsByDeployer(
+      address,
+      currentPage,
+      actualLimit,
+    );
+
+    return new PaginatedResponseDto(
+      contracts,
+      currentPage,
+      actualLimit,
+      totalCount,
+      '배포한 컨트랙트 목록 조회 성공',
     );
   }
 

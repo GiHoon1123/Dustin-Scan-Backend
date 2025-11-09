@@ -32,6 +32,7 @@ describe('ContractsController', () => {
   beforeEach(async () => {
     const mockService = {
       getContracts: jest.fn(),
+      getContractsByDeployer: jest.fn(),
       getContract: jest.fn(),
       deployContract: jest.fn(),
       updateContractAbi: jest.fn(),
@@ -105,6 +106,22 @@ describe('ContractsController', () => {
 
       expect(result.data.transactionHash).toBe('0xdeployhash');
       expect(service.deployContract).toHaveBeenCalledWith(dto);
+    });
+  });
+
+  describe('getContractsByDeployer', () => {
+    it('should return contracts filtered by deployer', async () => {
+      const paginated = {
+        contracts: [mockContract],
+        totalCount: 1,
+      };
+      service.getContractsByDeployer.mockResolvedValue(paginated);
+
+      const result = await controller.getContractsByDeployer('0xabc', 1, 20);
+
+      expect(result.data.items).toHaveLength(1);
+      expect(result.data.pagination.totalCount).toBe(1);
+      expect(service.getContractsByDeployer).toHaveBeenCalledWith('0xabc', 1, 20);
     });
   });
 

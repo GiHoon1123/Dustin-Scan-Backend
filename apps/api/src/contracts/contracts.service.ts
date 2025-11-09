@@ -40,6 +40,30 @@ export class ContractsService {
   }
 
   /**
+   * 배포자 주소 기준 컨트랙트 목록 조회 (페이징)
+   */
+  async getContractsByDeployer(
+    address: string,
+    page = 1,
+    limit = 20,
+  ): Promise<{ contracts: ContractResponseDto[]; totalCount: number }> {
+    const normalizedAddress = this.normalizeAccountAddress(address);
+    const currentPage = Math.max(Number(page) || 1, 1);
+    const pageSize = Math.max(Number(limit) || 20, 1);
+
+    const [contracts, totalCount] = await this.contractRepo.findPaginatedByDeployer(
+      normalizedAddress,
+      currentPage,
+      pageSize,
+    );
+
+    return {
+      contracts: contracts.map((contract) => this.toDto(contract)),
+      totalCount,
+    };
+  }
+
+  /**
    * 컨트랙트 조회 (주소로)
    */
   async getContract(address: string): Promise<ContractResponseDto> {
@@ -294,5 +318,21 @@ export class ContractsService {
       timestamp: contract.timestamp,
       createdAt: contract.createdAt.toISOString(),
     };
+  }
+
+  /**
+   * 주소 포맷 검증 및 정규화
+   */
+  private normalizeAccountAddress(address: string): string {
+    const trimmed = address?.trim();
+    if (!trimmed) {
+      throw new BadRequestException('지갑 주소는 필수입니다.');
+    }
+
+    if (!/^0x[0-9a-fA-F]{40}$/.test(trimmed)) {
+      throw new BadRequestException(`유효하지 않은 지갑 주소 형식입니다: ${address}`);
+    }
+
+    return trimmed.toLowerCase();
   }
 }

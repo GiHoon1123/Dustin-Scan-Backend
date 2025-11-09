@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { Contract } from '../entities/contract.entity';
 
 /**
@@ -27,8 +27,26 @@ export class ContractRepository {
    */
   async findByDeployer(deployer: string): Promise<Contract[]> {
     return this.repository.find({
-      where: { deployer },
-      order: { blockNumber: 'DESC' },
+      where: { deployer: ILike(deployer) },
+      order: { blockNumber: 'DESC', createdAt: 'DESC' },
+    });
+  }
+
+  /**
+   * 배포자 주소 기준 페이징 조회
+   */
+  async findPaginatedByDeployer(
+    deployer: string,
+    page: number,
+    limit: number,
+  ): Promise<[Contract[], number]> {
+    const skip = (page - 1) * limit;
+
+    return this.repository.findAndCount({
+      where: { deployer: ILike(deployer) },
+      order: { blockNumber: 'DESC', createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
   }
 

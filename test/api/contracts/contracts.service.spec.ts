@@ -48,6 +48,7 @@ describe('ContractsService', () => {
   beforeEach(async () => {
     const mockContractRepo = {
       findPaginated: jest.fn(),
+      findPaginatedByDeployer: jest.fn(),
       findByAddress: jest.fn(),
       update: jest.fn(),
       save: jest.fn(),
@@ -87,6 +88,29 @@ describe('ContractsService', () => {
       expect(result.contracts).toHaveLength(1);
       expect(result.totalCount).toBe(1);
       expect(result.contracts[0].address).toBe('0x123');
+    });
+  });
+
+  describe('getContractsByDeployer', () => {
+    it('should return paginated contracts by deployer', async () => {
+      contractRepo.findPaginatedByDeployer.mockResolvedValue([[mockContract], 1]);
+
+      const deployer = '0xabc0000000000000000000000000000000000000';
+      const result = await service.getContractsByDeployer(deployer, 2, 10);
+
+      expect(result.contracts).toHaveLength(1);
+      expect(result.totalCount).toBe(1);
+      expect(contractRepo.findPaginatedByDeployer).toHaveBeenCalledWith(
+        deployer,
+        2,
+        10,
+      );
+    });
+
+    it('should throw BadRequestException for invalid address', async () => {
+      await expect(service.getContractsByDeployer('invalid-address')).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 

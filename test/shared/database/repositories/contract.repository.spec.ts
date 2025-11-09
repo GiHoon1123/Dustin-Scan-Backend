@@ -65,10 +65,12 @@ describe('ContractRepository', () => {
       const result = await repository.findByDeployer('0xdeployer');
 
       expect(result).toEqual([mockContract]);
-      expect(typeOrmRepo.find).toHaveBeenCalledWith({
-        where: { deployer: '0xdeployer' },
-        order: { blockNumber: 'DESC' },
-      });
+      expect(typeOrmRepo.find).toHaveBeenCalledTimes(1);
+      const callArgs = typeOrmRepo.find.mock.calls[0][0] as any;
+      expect(callArgs.order).toEqual({ blockNumber: 'DESC', createdAt: 'DESC' });
+      const operator = callArgs.where.deployer as any;
+      expect(operator).toBeDefined();
+      expect(operator.value ?? operator._value).toBe('0xdeployer');
     });
   });
 
@@ -111,6 +113,22 @@ describe('ContractRepository', () => {
 
       expect(result).toBe(50);
       expect(typeOrmRepo.count).toHaveBeenCalled();
+    });
+  });
+
+  describe('findPaginatedByDeployer', () => {
+    it('should return paginated contracts by deployer', async () => {
+      typeOrmRepo.findAndCount.mockResolvedValue([[mockContract], 1]);
+
+      const result = await repository.findPaginatedByDeployer('0xdeployer', 2, 10);
+
+      expect(result).toEqual([[mockContract], 1]);
+      expect(typeOrmRepo.findAndCount).toHaveBeenCalledWith({
+        where: expect.objectContaining({ deployer: expect.any(Object) }),
+        order: { blockNumber: 'DESC', createdAt: 'DESC' },
+        skip: 10,
+        take: 10,
+      });
     });
   });
 
