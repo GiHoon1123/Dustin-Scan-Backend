@@ -4,7 +4,14 @@ import {
   ChainReceiptDto,
   ChainTransactionDto,
 } from '@app/common/types/chain-rpc.types';
-import { Block, Contract, Transaction, TransactionReceipt } from '@app/database';
+import {
+  Block,
+  Contract,
+  Token,
+  TokenTransfer,
+  Transaction,
+  TransactionReceipt,
+} from '@app/database';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource } from 'typeorm';
 import { BlockIndexerService } from '../../../apps/indexer/src/services/block-indexer.service';
@@ -208,6 +215,58 @@ describe('BlockIndexerService', () => {
       // Contract save가 호출되지 않아야 함
       const saveCalls = mockManager.save.mock.calls.filter((call) => call[0] === Contract);
       expect(saveCalls).toHaveLength(0);
+    });
+
+    it('should save token transfers and tokens when transfer logs exist', async () => {
+      const transferTopic =
+        '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+      const receiptWithLogs: ChainReceiptDto = {
+        ...mockReceipt,
+        logs: [
+          {
+            address: '0xTokenAddress',
+            topics: [
+              transferTopic,
+              '0xfrom1',
+              '0xto1',
+            ],
+            data: '0x01',
+            logIndex: 0,
+          } as any,
+        ],
+      };
+
+      const mockManager = {
+        findOne: jest.fn().mockResolvedValue(null),
+        save: jest.fn(),
+      };
+
+      dataSource.transaction = jest
+        .fn()
+        .mockImplementation(async (callback) => await callback(mockManager));
+      chainClient.getReceipt.mockResolvedValue(receiptWithLogs);
+
+      await service.indexBlock(mockBlockData);
+
+      // TokenTransfer 저장 확인
+      const transferSaveCall = mockManager.save.mock.calls.find(
+        (call) => call[0] === TokenTransfer,
+      );
+      expect(transferSaveCall).toBeDefined();
+      const savedTransfer = transferSaveCall?.[1] as TokenTransfer;
+      expect(savedTransfer.tokenAddress).toBe('0xtokenaddress');
+      expect(savedTransfer.from).toBe('0xfrom1');
+      expect(savedTransfer.to).toBe('0xto1');
+      expect(savedTransfer.value).toBe('1');
+
+      // Token 저장 확인
+      const tokenSaveCall = mockManager.save.mock.calls.find(
+        (call) => call[0] === Token,
+      );
+      expect(tokenSaveCall).toBeDefined();
+      const savedToken = tokenSaveCall?.[1] as Token;
+      expect(savedToken.address).toBe('0xtokenaddress');
     });
   });
 });

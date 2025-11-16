@@ -143,12 +143,23 @@ describe('TransactionsService', () => {
   describe('getTransactionByHash', () => {
     it('should return transaction from DB when found', async () => {
       txRepo.findByHash.mockResolvedValue(mockTx);
-      receiptRepo.findByTransactionHash.mockResolvedValue(mockReceipt);
+      const receiptWithLogs = {
+        ...mockReceipt,
+        logs: [
+          {
+            address: '0xTokenAddress',
+            topics: ['0xtopic0', '0xtopic1'],
+            data: '0x01',
+          },
+        ],
+      } as any;
+      receiptRepo.findByTransactionHash.mockResolvedValue(receiptWithLogs);
 
       const result = await service.getTransactionByHash('0x123');
 
       expect(result.hash).toBe('0x123');
       expect(result.status).toBe(1);
+      expect(result.logs).toEqual(receiptWithLogs.logs);
       expect(txRepo.findByHash).toHaveBeenCalledWith('0x123');
       expect(chainClient.getTransaction).not.toHaveBeenCalled();
     });
@@ -156,13 +167,24 @@ describe('TransactionsService', () => {
     it('should fetch from chain when not found in DB', async () => {
       txRepo.findByHash.mockResolvedValue(null);
       chainClient.getTransaction.mockResolvedValue(mockChainTx);
-      chainClient.getReceipt.mockResolvedValue(mockChainReceipt);
+      const chainReceiptWithLogs: ChainReceiptDto = {
+        ...mockChainReceipt,
+        logs: [
+          {
+            address: '0xTokenAddress',
+            topics: ['0xtopic0', '0xtopic1'],
+            data: '0x01',
+          } as any,
+        ],
+      };
+      chainClient.getReceipt.mockResolvedValue(chainReceiptWithLogs);
 
       const result = await service.getTransactionByHash('0x456');
 
       expect(result.hash).toBe('0x456');
       expect(result.from).toBe('0xfrom2');
       expect(result.status).toBe(1);
+      expect(result.logs).toEqual(chainReceiptWithLogs.logs);
       expect(chainClient.getTransaction).toHaveBeenCalledWith('0x456');
       expect(chainClient.getReceipt).toHaveBeenCalledWith('0x456');
     });
