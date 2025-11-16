@@ -19,6 +19,15 @@ export interface ChainBlockDto {
   stateRoot: string;
   transactionsRoot: string;
   receiptsRoot: string;
+  /**
+   * Logs Bloom Filter (Ethereum logsBloom)
+   *
+   * Dustin-Chain Block.toJSON에서 Header에 포함되는 필드로,
+   * 블록 내 모든 Receipt의 logsBloom을 OR 연산한 결과입니다.
+   * 현재 인덱서에서는 직접 사용하지 않지만, raw 필드로 저장된
+   * 원본 블록 데이터에서 참조할 수 있도록 타입에 반영합니다.
+   */
+  logsBloom?: string;
 }
 
 /**

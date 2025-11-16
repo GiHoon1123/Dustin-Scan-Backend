@@ -3,6 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from './database.config';
 import { Account } from './entities/account.entity';
 import { Block } from './entities/block.entity';
+import { Contract } from './entities/contract.entity';
+import { TokenTransfer } from './entities/token-transfer.entity';
+import { Token } from './entities/token.entity';
 import { Transaction } from './entities/transaction.entity';
 
 /**
@@ -17,7 +20,7 @@ import { Transaction } from './entities/transaction.entity';
     TypeOrmModule.forRoot(databaseConfig),
 
     // Entity Repository 등록
-    TypeOrmModule.forFeature([Block, Transaction, Account]),
+    TypeOrmModule.forFeature([Block, Transaction, Account, Contract, TokenTransfer, Token]),
   ],
   exports: [TypeOrmModule],
 })

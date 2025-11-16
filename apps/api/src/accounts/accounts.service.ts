@@ -1,8 +1,10 @@
 import { ChainClientService } from '@app/chain-client';
 import { hexToDecimal, weiToDstn } from '@app/common';
-import { TransactionRepository } from '@app/database';
+import { Token, TokenRepository, TokenTransfer, TokenTransferRepository, TransactionRepository } from '@app/database';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AccountResponseDto } from './dto/account-response.dto';
+import { TokenBalanceDto } from './dto/token-balance.dto';
+import { TokenTransferItemDto } from './dto/token-transfer-item.dto';
 
 /**
  * 계정 조회 서비스
@@ -16,6 +18,8 @@ import { AccountResponseDto } from './dto/account-response.dto';
 export class AccountsService {
   constructor(
     private readonly transactionRepo: TransactionRepository,
+    private readonly tokenTransferRepo: TokenTransferRepository,
+    private readonly tokenRepo: TokenRepository,
     private readonly chainClient: ChainClientService,
   ) {}
 
@@ -37,6 +41,96 @@ export class AccountsService {
     const txCount = await this.transactionRepo.countByAddress(address.toLowerCase());
 
     return this.toDto(chainAccount, txCount, address.toLowerCase());
+  }
+
+  /**
+   * 특정 주소가 보유한 토큰 자산 목록 조회
+   */
+  async getTokenBalances(
+    address: string,
+    page: number,
+    limit: number,
+  ): Promise<{ items: TokenBalanceDto[] }> {
+    const normalized = address.toLowerCase();
+    const rows = await this.tokenTransferRepo.getTokenBalancesByAddress(
+      normalized,
+      page,
+      limit,
+    );
+
+    const items: TokenBalanceDto[] = [];
+
+    for (const row of rows) {
+      const tokenAddress = row.tokenAddress.toLowerCase();
+      const token = await this.tokenRepo.findByAddress(tokenAddress);
+
+      const dto: TokenBalanceDto = {
+        tokenAddress,
+        name: token?.name ?? null,
+        symbol: token?.symbol ?? null,
+        decimals: token?.decimals ?? null,
+        balance: row.balance,
+      };
+
+      items.push(dto);
+    }
+
+    return { items };
+  }
+
+  /**
+   * 특정 주소 기준 토큰 전송 내역 조회
+   */
+  async getTokenTransfers(
+    address: string,
+    tokenAddress: string | undefined,
+    page: number,
+    limit: number,
+  ): Promise<{ items: TokenTransferItemDto[]; totalCount: number }> {
+    const normalizedAddress = address.toLowerCase();
+
+    let transfers: TokenTransfer[];
+    let totalCount: number;
+
+    if (tokenAddress) {
+      [transfers, totalCount] = await this.tokenTransferRepo.findByTokenAndAddressPaginated(
+        tokenAddress,
+        normalizedAddress,
+        page,
+        limit,
+      );
+    } else {
+      [transfers, totalCount] = await this.tokenTransferRepo.findByAddressPaginated(
+        normalizedAddress,
+        page,
+        limit,
+      );
+    }
+
+    const items: TokenTransferItemDto[] = transfers.map((t) => {
+      let direction: 'in' | 'out' | 'self';
+      if (t.from === normalizedAddress && t.to === normalizedAddress) {
+        direction = 'self';
+      } else if (t.to === normalizedAddress) {
+        direction = 'in';
+      } else {
+        direction = 'out';
+      }
+
+      return {
+        tokenAddress: t.tokenAddress,
+        from: t.from,
+        to: t.to,
+        value: t.value,
+        blockNumber: t.blockNumber,
+        transactionHash: t.transactionHash,
+        logIndex: t.logIndex,
+        timestamp: t.timestamp,
+        direction,
+      };
+    });
+
+    return { items, totalCount };
   }
 
   /**

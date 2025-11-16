@@ -48,6 +48,11 @@ export class TransactionResponseDto {
   @ApiPropertyOptional({ description: '배포된 컨트랙트 주소 (컨트랙트 배포 트랜잭션인 경우)' })
   contractAddress?: string | null;
 
+  @ApiPropertyOptional({
+    description: '트랜잭션 Receipt 로그 배열 (logs 필드, /transactions/:hash 상세 조회에서만 사용)',
+  })
+  logs?: any[];
+
   @ApiProperty({ description: '생성 시각' })
   createdAt: string;
 }

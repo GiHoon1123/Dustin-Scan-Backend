@@ -1,6 +1,8 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Account } from './entities/account.entity';
 import { Block } from './entities/block.entity';
+import { TokenTransfer } from './entities/token-transfer.entity';
+import { Token } from './entities/token.entity';
 import { Transaction } from './entities/transaction.entity';
 
 /**
@@ -26,8 +28,8 @@ export const databaseConfig: TypeOrmModuleOptions = {
   username: process.env.DB_USERNAME,
   password: String(process.env.DB_PASSWORD),
   database: process.env.DB_DATABASE,
-  entities: [Block, Transaction, Account],
-  synchronize: process.env.DB_SYNCHRONIZE === 'true',
+  entities: [Block, Transaction, Account, Token, TokenTransfer],
+  // synchronize: process.env.DB_SYNCHRONIZE === 'true',
   logging: process.env.DB_LOGGING === 'true',
 
   // Connection Pool 설정

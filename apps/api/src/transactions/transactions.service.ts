@@ -80,7 +80,12 @@ export class TransactionsService {
     if (tx) {
       // DB에 있으면 Receipt 조회 후 반환
       const receipt = await this.receiptRepo.findByTransactionHash(hash);
-      return this.toDto(tx, receipt);
+      const dto = this.toDto(tx, receipt);
+      // 상세 조회에서는 Receipt의 logs도 함께 반환 (이더스캔 Logs 탭용)
+      if (receipt) {
+        dto.logs = receipt.logs || [];
+      }
+      return dto;
     }
 
     // 2. DB에 없으면 코어에서 조회
@@ -194,7 +199,7 @@ export class TransactionsService {
     const timestampSeconds = parseInt(timestamp);
     const timestampMs = (timestampSeconds * 1000).toString();
 
-    return {
+    const dto: TransactionResponseDto = {
       // 기본 트랜잭션 정보
       hash: chainTx.hash,
       blockHash: chainTx.blockHash || '',
@@ -215,5 +220,12 @@ export class TransactionsService {
         : undefined,
       contractAddress: chainReceipt?.contractAddress || undefined,
     };
+
+    // 체인에서 바로 조회한 경우에도 logs가 있다면 함께 반환
+    if (chainReceipt && Array.isArray(chainReceipt.logs)) {
+      dto.logs = chainReceipt.logs;
+    }
+
+    return dto;
   }
 }

@@ -24,7 +24,7 @@ import { ChainSyncerService } from './services/chain-syncer.service';
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_DATABASE'),
         entities: [Block, Transaction, TransactionReceipt],
-        synchronize: config.get('DB_SYNCHRONIZE') === 'true',
+        // synchronize: config.get('DB_SYNCHRONIZE') === 'true',
         // 개발 환경에서는 매번 DB 스키마 초기화 (충돌 방지를 위해 주석 처리)
         // dropSchema: process.env.NODE_ENV === 'development',
         logging: false, // DB 쿼리 로깅 비활성화

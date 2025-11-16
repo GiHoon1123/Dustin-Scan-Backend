@@ -6,7 +6,7 @@ import {
   hexToDecimal,
   hexToDecimalString,
 } from '@app/common';
-import { Block, Contract, Transaction, TransactionReceipt } from '@app/database';
+import { Block, Contract, Token, TokenTransfer, Transaction, TransactionReceipt } from '@app/database';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -43,6 +43,7 @@ export class BlockIndexerService {
    */
   async indexBlock(blockData: ChainBlockDto): Promise<void> {
     const blockNumber = hexToDecimal(blockData.number);
+    const tokenExistsCache = new Map<string, boolean>();
 
     // 트랜잭션 시작: 모든 작업이 성공해야만 커밋됨
     await this.dataSource.transaction(async (manager) => {
@@ -73,6 +74,9 @@ export class BlockIndexerService {
           // Receipt 저장
           const receipt = this.parseReceipt(receiptData);
           await manager.save(TransactionReceipt, receipt);
+
+          // 토큰 Transfer 이벤트 파싱 및 저장
+          await this.saveTokenTransfers(receiptData, blockData, manager, tokenExistsCache);
 
           // 컨트랙트 배포 감지 및 저장
           if (receiptData.contractAddress) {
@@ -183,6 +187,129 @@ export class BlockIndexerService {
     receipt.logsBloom = receiptData.logsBloom;
 
     return receipt;
+  }
+
+  /**
+   * Receipt의 로그에서 ERC-20 Transfer 이벤트를 파싱하여 TokenTransfer로 저장
+   *
+   * @param receiptData - 체인 Receipt 데이터
+   * @param blockData - 이 Receipt가 포함된 블록 데이터
+   * @param manager - TypeORM EntityManager
+   * @param tokenExistsCache - 토큰 주소 존재 여부 캐시 (블록 단위)
+   */
+  private async saveTokenTransfers(
+    receiptData: ChainReceiptDto,
+    blockData: ChainBlockDto,
+    manager: any,
+    tokenExistsCache: Map<string, boolean>,
+  ): Promise<void> {
+    const logs = receiptData.logs || [];
+
+    if (!logs.length) {
+      return;
+    }
+
+    const TRANSFER_TOPIC =
+      '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+    const blockNumber = hexToDecimalString(receiptData.blockNumber);
+    const timestamp = hexToDecimalString(blockData.timestamp);
+
+    for (let i = 0; i < logs.length; i++) {
+      const log = logs[i];
+
+      if (!log || !Array.isArray(log.topics) || log.topics.length < 3) {
+        continue;
+      }
+
+      const topic0 = String(log.topics[0]).toLowerCase();
+      if (topic0 !== TRANSFER_TOPIC) {
+        continue;
+      }
+
+      // indexed 파라미터에서 from/to 주소 디코딩
+      const from = this.decodeAddressFromTopic(log.topics[1]);
+      const to = this.decodeAddressFromTopic(log.topics[2]);
+
+      // value는 data에 32바이트 정수로 인코딩
+      const valueHex = log.data ?? '0x0';
+      const value = hexToDecimalString(valueHex);
+
+      const tokenAddress = String(log.address).toLowerCase();
+      const blockHash = receiptData.blockHash;
+      const transactionHash = receiptData.transactionHash;
+      const logIndex: number =
+        typeof log.logIndex === 'number' ? log.logIndex : i;
+
+      const transfer = new TokenTransfer();
+      transfer.tokenAddress = tokenAddress;
+      transfer.from = from;
+      transfer.to = to;
+      transfer.value = value;
+      transfer.blockNumber = blockNumber;
+      transfer.blockHash = blockHash;
+      transfer.transactionHash = transactionHash;
+      transfer.logIndex = logIndex;
+      transfer.timestamp = timestamp;
+
+      await manager.save(TokenTransfer, transfer);
+
+      // tokens 테이블에 토큰 주소만 우선 등록 (메타 정보는 별도 프로세스에서 채움)
+      await this.ensureTokenExists(manager, tokenAddress, tokenExistsCache);
+    }
+  }
+
+  /**
+   * 토픽에서 주소 디코딩 (마지막 20바이트)
+   *
+   * @param topic - 32바이트 Hex String (0x + 64자리)
+   * @returns EVM 주소 (0x + 40자리, 소문자)
+   */
+  private decodeAddressFromTopic(topic: string): string {
+    if (!topic) {
+      return '0x0000000000000000000000000000000000000000';
+    }
+
+    const normalized = topic.toString().toLowerCase();
+    const raw = normalized.startsWith('0x') ? normalized.slice(2) : normalized;
+    const addressPart = raw.slice(-40);
+    return `0x${addressPart}`;
+  }
+
+  /**
+   * tokens 테이블에 토큰 주소가 존재하는지 확인하고, 없으면 address만 등록
+   *
+   * @param manager - TypeORM EntityManager
+   * @param tokenAddress - 토큰 컨트랙트 주소 (소문자)
+   * @param cache - 블록 단위 캐시
+   */
+  private async ensureTokenExists(
+    manager: any,
+    tokenAddress: string,
+    cache: Map<string, boolean>,
+  ): Promise<void> {
+    if (cache.get(tokenAddress)) {
+      return;
+    }
+
+    const existing = await manager.findOne(Token, {
+      where: { address: tokenAddress },
+    });
+
+    if (existing) {
+      cache.set(tokenAddress, true);
+      return;
+    }
+
+    const token = new Token();
+    token.address = tokenAddress;
+    token.name = null;
+    token.symbol = null;
+    token.decimals = null;
+    token.type = 'erc20';
+
+    await manager.save(Token, token);
+    cache.set(tokenAddress, true);
   }
 
   /**

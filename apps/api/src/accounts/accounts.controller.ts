@@ -1,8 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import {
   ApiExtraModels,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
   getSchemaPath,
@@ -10,9 +11,11 @@ import {
 import { CommonResponseDto } from '../common/dto';
 import { AccountsService } from './accounts.service';
 import { AccountResponseDto } from './dto/account-response.dto';
+import { TokenBalanceDto } from './dto/token-balance.dto';
+import { TokenTransferItemDto } from './dto/token-transfer-item.dto';
 
 @ApiTags('계정 (Accounts)')
-@ApiExtraModels(CommonResponseDto, AccountResponseDto)
+@ApiExtraModels(CommonResponseDto, AccountResponseDto, TokenBalanceDto, TokenTransferItemDto)
 @Controller('accounts')
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
@@ -77,5 +80,145 @@ export class AccountsController {
   ): Promise<CommonResponseDto<AccountResponseDto>> {
     const account = await this.accountsService.getAccount(address);
     return CommonResponseDto.success(account, '계정 조회 성공');
+  }
+
+  @Get(':address/tokens')
+  @ApiOperation({
+    summary: '지갑 토큰 자산 목록 조회',
+    description:
+      '특정 지갑 주소가 보유한 토큰들의 목록과 각 토큰별 잔액을 조회합니다. 잔액은 token_transfers 집계를 기반으로 계산됩니다.',
+  })
+  @ApiParam({
+    name: 'address',
+    description: '지갑 주소 (0x로 시작하는 40자리 16진수)',
+    example: '0x2ac26b318b1136e535abb97733a00cc8b80a5b49',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: '페이지 번호 (기본값: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '페이지당 개수 (기본값: 20, 최대: 100)',
+    example: 20,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '토큰 자산 목록 조회 성공',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: {
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $ref: getSchemaPath(TokenBalanceDto) },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  async getTokenBalances(
+    @Param('address') address: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ): Promise<CommonResponseDto<{ items: TokenBalanceDto[] }>> {
+    const parsedPage = Number(page) || 1;
+    const parsedLimit = Number(limit) || 20;
+    const currentPage = parsedPage < 1 ? 1 : parsedPage;
+    const actualLimit = Math.min(parsedLimit < 1 ? 20 : parsedLimit, 100);
+
+    const result = await this.accountsService.getTokenBalances(
+      address,
+      currentPage,
+      actualLimit,
+    );
+
+    return CommonResponseDto.success(result, '토큰 자산 목록 조회 성공');
+  }
+
+  @Get(':address/token-transfers')
+  @ApiOperation({
+    summary: '지갑 토큰 전송 내역 조회',
+    description:
+      '특정 지갑 주소 기준으로 토큰 전송 내역을 조회합니다. token 파라미터를 사용하면 특정 토큰에 대한 내역만 필터링할 수 있습니다.',
+  })
+  @ApiParam({
+    name: 'address',
+    description: '지갑 주소 (0x로 시작하는 40자리 16진수)',
+    example: '0x2ac26b318b1136e535abb97733a00cc8b80a5b49',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'token',
+    required: false,
+    description: '특정 토큰 컨트랙트 주소로 필터링 (선택)',
+    example: '0xTokenAddress...',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: '페이지 번호 (기본값: 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: '페이지당 개수 (기본값: 20, 최대: 100)',
+    example: 20,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '토큰 전송 내역 조회 성공',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: {
+              properties: {
+                items: {
+                  type: 'array',
+                  items: { $ref: getSchemaPath(TokenTransferItemDto) },
+                },
+                totalCount: {
+                  type: 'number',
+                  example: 42,
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  async getTokenTransfers(
+    @Param('address') address: string,
+    @Query('token') token?: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ): Promise<CommonResponseDto<{ items: TokenTransferItemDto[]; totalCount: number }>> {
+    const parsedPage = Number(page) || 1;
+    const parsedLimit = Number(limit) || 20;
+    const currentPage = parsedPage < 1 ? 1 : parsedPage;
+    const actualLimit = Math.min(parsedLimit < 1 ? 20 : parsedLimit, 100);
+
+    const result = await this.accountsService.getTokenTransfers(
+      address,
+      token,
+      currentPage,
+      actualLimit,
+    );
+
+    return CommonResponseDto.success(result, '토큰 전송 내역 조회 성공');
   }
 }

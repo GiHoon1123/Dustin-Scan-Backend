@@ -194,7 +194,43 @@ export class TransactionsController {
         { $ref: getSchemaPath(CommonResponseDto) },
         {
           properties: {
-            data: { $ref: getSchemaPath(TransactionResponseDto) },
+            data: {
+              allOf: [
+                { $ref: getSchemaPath(TransactionResponseDto) },
+                {
+                  example: {
+                    hash: '0x6cf0d5d1fff9f441d788265fcae8a6e5c38a45275cad13a1e6d05589a1bd4e39',
+                    blockHash:
+                      '0xabc1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd',
+                    blockNumber: '3',
+                    from: '0x1111111111111111111111111111111111111111',
+                    to: '0x2222222222222222222222222222222222222222',
+                    value: '1000000000.0',
+                    valueWei: '1000000000000000000000000000',
+                    nonce: 1,
+                    timestamp: '1710000000000',
+                    createdAt: '2025-03-10T12:00:00.000Z',
+                    status: 1,
+                    gasUsed: '21000',
+                    cumulativeGasUsed: '21000',
+                    contractAddress: null,
+                    logs: [
+                      {
+                        address: '0xTokenAddress000000000000000000000000000000',
+                        topics: [
+                          '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef',
+                          '0x0000000000000000000000001111111111111111111111111111111111111111',
+                          '0x0000000000000000000000002222222222222222222222222222222222222222',
+                        ],
+                        data:
+                          '0x0000000000000000000000000000000000000000000000000de0b6b3a7640000',
+                        logIndex: 0,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
           },
         },
       ],
