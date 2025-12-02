@@ -9,11 +9,13 @@ import {
 import { SharedModule } from '@app/shared';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HealthController } from './health/health.controller';
 import { IndexerController } from './indexer.controller';
 import { BlockIndexerService } from './services/block-indexer.service';
+import { DatabaseCleanupScheduler } from './services/database-cleanup.scheduler';
 
 @Module({
   imports: [
@@ -45,10 +47,11 @@ import { BlockIndexerService } from './services/block-indexer.service';
       Token,
       TokenTransfer,
     ]),
+    ScheduleModule.forRoot(),
     SharedModule,
     TerminusModule,
   ],
   controllers: [IndexerController, HealthController],
-  providers: [BlockIndexerService],
+  providers: [BlockIndexerService, DatabaseCleanupScheduler],
 })
 export class IndexerAppModule {}

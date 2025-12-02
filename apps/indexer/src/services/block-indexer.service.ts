@@ -45,54 +45,171 @@ export class BlockIndexerService {
     const blockNumber = hexToDecimal(blockData.number);
     const tokenExistsCache = new Map<string, boolean>();
 
-    // 트랜잭션 시작: 모든 작업이 성공해야만 커밋됨
-    await this.dataSource.transaction(async (manager) => {
-      // 1. 블록 중복 체크
-      const existingBlock = await manager.findOne(Block, {
-        where: { hash: blockData.hash },
+    try {
+      // 트랜잭션 시작: 모든 작업이 성공해야만 커밋됨
+      // Isolation Level: READ COMMITTED (부분 커밋 방지)
+      await this.dataSource.transaction(
+        async (manager) => {
+          // 1. 블록 중복 체크
+          const existingBlock = await manager.findOne(Block, {
+            where: { hash: blockData.hash },
+          });
+
+          if (existingBlock) {
+            // 블록이 이미 있으면 하위 엔티티도 모두 있는지 확인
+            // 일부만 저장된 경우를 대비해 하위 엔티티도 체크
+            this.logger.warn(`Block #${blockNumber} already indexed, checking child entities...`);
+            
+            // 하위 엔티티가 모두 있는지 확인 (중복 저장 방지)
+            for (const txData of blockData.transactions) {
+              const existingTx = await manager.findOne(Transaction, {
+                where: { hash: txData.hash },
+              });
+
+              if (!existingTx) {
+                this.logger.warn(
+                  `Block #${blockNumber} exists but transaction ${txData.hash} is missing, re-indexing...`,
+                );
+                // 하위 엔티티가 없으면 다시 저장 시도
+                await this.saveBlockEntities(blockData, manager, tokenExistsCache);
+                return;
+              }
+
+              // Receipt도 확인
+              const receiptData = await this.chainClient.getReceipt(txData.hash);
+              if (receiptData) {
+                const existingReceipt = await manager.findOne(TransactionReceipt, {
+                  where: { transactionHash: receiptData.transactionHash },
+                });
+
+                if (!existingReceipt) {
+                  this.logger.warn(
+                    `Block #${blockNumber} exists but receipt for ${txData.hash} is missing, re-indexing...`,
+                  );
+                  await this.saveBlockEntities(blockData, manager, tokenExistsCache);
+                  return;
+                }
+              }
+            }
+
+            this.logger.debug(`Block #${blockNumber} and all child entities already indexed, skipping`);
+            return;
+          }
+
+          // 2. 블록 및 하위 엔티티 저장
+          await this.saveBlockEntities(blockData, manager, tokenExistsCache);
+        },
+      );
+    } catch (error: any) {
+      // 트랜잭션 에러 발생 시 로깅 및 재던지기
+      this.logger.error(
+        `Failed to index block #${blockNumber} (hash: ${blockData.hash}):`,
+        error.message || error,
+      );
+      throw error; // 상위로 에러 전파 (Sync 서버가 재시도하도록)
+    }
+  }
+
+  /**
+   * 블록 및 하위 엔티티 저장 (중복 체크 포함, 원자적 저장 보장)
+   *
+   * 트랜잭션 내에서 모든 작업이 성공해야만 커밋됨
+   * 하나라도 실패하면 전체 롤백됨
+   *
+   * @param blockData - Chain 블록 데이터
+   * @param manager - TypeORM EntityManager
+   * @param tokenExistsCache - 토큰 존재 여부 캐시
+   */
+  private async saveBlockEntities(
+    blockData: ChainBlockDto,
+    manager: any,
+    tokenExistsCache: Map<string, boolean>,
+  ): Promise<void> {
+    const blockNumber = hexToDecimal(blockData.number);
+
+    // 1. 블록 저장 (중복 체크는 상위에서 이미 함)
+    const block = this.parseBlock(blockData);
+    await manager.save(Block, block);
+
+    // 2. 모든 트랜잭션 및 Receipt를 먼저 조회하고 엔티티 생성
+    // (RPC 호출이 트랜잭션 외부에서 이루어지면 안 되므로, 트랜잭션 내에서 수행)
+    const transactionsToSave: Transaction[] = [];
+    const receiptsToSave: TransactionReceipt[] = [];
+    const tokenTransfersToSave: TokenTransfer[] = [];
+    const contractsToSave: Contract[] = [];
+
+    for (const txData of blockData.transactions) {
+      // Transaction 중복 체크
+      const existingTx = await manager.findOne(Transaction, {
+        where: { hash: txData.hash },
       });
 
-      if (existingBlock) {
-        this.logger.warn(`Block #${blockNumber} already indexed, skipping`);
-        return;
-      }
-
-      // 2. 블록 엔티티 생성 및 저장
-      const block = this.parseBlock(blockData);
-      await manager.save(Block, block);
-
-      // 3. 트랜잭션들 저장, Receipt 조회 및 저장, 계정 업데이트
-      for (const txData of blockData.transactions) {
-        // 트랜잭션 저장
+      if (!existingTx) {
         const transaction = this.parseTransaction(txData, blockData);
-        await manager.save(Transaction, transaction);
-
-        // Receipt 조회 (Chain RPC 호출)
-        const receiptData = await this.chainClient.getReceipt(txData.hash);
-
-        if (receiptData) {
-          // Receipt 저장
-          const receipt = this.parseReceipt(receiptData);
-          await manager.save(TransactionReceipt, receipt);
-
-          // 토큰 Transfer 이벤트 파싱 및 저장
-          await this.saveTokenTransfers(receiptData, blockData, manager, tokenExistsCache);
-
-          // 컨트랙트 배포 감지 및 저장
-          if (receiptData.contractAddress) {
-            await this.saveContract(
-              receiptData,
-              blockData,
-              txData,
-              manager,
-            );
-          }
-        } else {
-          // Receipt가 없는 경우 (pending 상태일 수도 있지만, 블록에 포함되었으면 있어야 함)
-          this.logger.warn(`No receipt found for transaction ${txData.hash}`);
-        }
+        transactionsToSave.push(transaction);
+      } else {
+        this.logger.debug(`Transaction ${txData.hash} already exists, skipping`);
       }
-    });
+
+      // Receipt 조회 (Chain RPC 호출) - 트랜잭션 내에서 수행
+      const receiptData = await this.chainClient.getReceipt(txData.hash);
+
+      if (receiptData) {
+        // TransactionReceipt 중복 체크
+        const existingReceipt = await manager.findOne(TransactionReceipt, {
+          where: { transactionHash: receiptData.transactionHash },
+        });
+
+        if (!existingReceipt) {
+          const receipt = this.parseReceipt(receiptData);
+          receiptsToSave.push(receipt);
+        } else {
+          this.logger.debug(`Receipt for ${receiptData.transactionHash} already exists, skipping`);
+        }
+
+        // 토큰 Transfer 이벤트 파싱 (저장은 나중에)
+        const transfers = await this.parseTokenTransfers(
+          receiptData,
+          blockData,
+          manager,
+          tokenExistsCache,
+        );
+        tokenTransfersToSave.push(...transfers);
+
+        // 컨트랙트 배포 감지 및 파싱 (저장은 나중에)
+        if (receiptData.contractAddress) {
+          const contract = await this.parseContract(receiptData, blockData, txData, manager);
+          if (contract) {
+            contractsToSave.push(contract);
+          }
+        }
+      } else {
+        // Receipt가 없는 경우 (pending 상태일 수도 있지만, 블록에 포함되었으면 있어야 함)
+        this.logger.warn(`No receipt found for transaction ${txData.hash}`);
+      }
+    }
+
+    // 3. 모든 엔티티를 한 번에 저장 (원자적 보장)
+    // 하나라도 실패하면 전체 롤백됨
+    if (transactionsToSave.length > 0) {
+      await manager.save(Transaction, transactionsToSave);
+    }
+
+    if (receiptsToSave.length > 0) {
+      await manager.save(TransactionReceipt, receiptsToSave);
+    }
+
+    if (tokenTransfersToSave.length > 0) {
+      await manager.save(TokenTransfer, tokenTransfersToSave);
+    }
+
+    if (contractsToSave.length > 0) {
+      await manager.save(Contract, contractsToSave);
+    }
+
+    this.logger.debug(
+      `Block #${blockNumber} indexed: ${transactionsToSave.length} transactions, ${receiptsToSave.length} receipts, ${tokenTransfersToSave.length} token transfers`,
+    );
   }
 
   /**
@@ -190,23 +307,26 @@ export class BlockIndexerService {
   }
 
   /**
-   * Receipt의 로그에서 ERC-20 Transfer 이벤트를 파싱하여 TokenTransfer로 저장
+   * Receipt의 로그에서 ERC-20 Transfer 이벤트를 파싱하여 TokenTransfer 엔티티 배열 반환
+   * (저장은 하지 않음, 중복 체크 포함)
    *
    * @param receiptData - 체인 Receipt 데이터
    * @param blockData - 이 Receipt가 포함된 블록 데이터
    * @param manager - TypeORM EntityManager
    * @param tokenExistsCache - 토큰 주소 존재 여부 캐시 (블록 단위)
+   * @returns TokenTransfer 엔티티 배열
    */
-  private async saveTokenTransfers(
+  private async parseTokenTransfers(
     receiptData: ChainReceiptDto,
     blockData: ChainBlockDto,
     manager: any,
     tokenExistsCache: Map<string, boolean>,
-  ): Promise<void> {
+  ): Promise<TokenTransfer[]> {
     const logs = receiptData.logs || [];
+    const transfers: TokenTransfer[] = [];
 
     if (!logs.length) {
-      return;
+      return transfers;
     }
 
     const TRANSFER_TOPIC =
@@ -214,6 +334,7 @@ export class BlockIndexerService {
 
     const blockNumber = hexToDecimalString(receiptData.blockNumber);
     const timestamp = hexToDecimalString(blockData.timestamp);
+    const transactionHash = receiptData.transactionHash;
 
     for (let i = 0; i < logs.length; i++) {
       const log = logs[i];
@@ -237,9 +358,25 @@ export class BlockIndexerService {
 
       const tokenAddress = String(log.address).toLowerCase();
       const blockHash = receiptData.blockHash;
-      const transactionHash = receiptData.transactionHash;
       const logIndex: number =
         typeof log.logIndex === 'number' ? log.logIndex : i;
+
+      // TokenTransfer 중복 체크 (transactionHash + logIndex 조합)
+      const existingTransfer = await manager.findOne(TokenTransfer, {
+        where: {
+          transactionHash: transactionHash,
+          logIndex: logIndex,
+        },
+      });
+
+      if (existingTransfer) {
+        this.logger.debug(
+          `TokenTransfer for tx ${transactionHash} logIndex ${logIndex} already exists, skipping`,
+        );
+        // 토큰은 이미 존재할 가능성이 높지만, 캐시 업데이트는 계속 진행
+        await this.ensureTokenExists(manager, tokenAddress, tokenExistsCache);
+        continue;
+      }
 
       const transfer = new TokenTransfer();
       transfer.tokenAddress = tokenAddress;
@@ -252,11 +389,13 @@ export class BlockIndexerService {
       transfer.logIndex = logIndex;
       transfer.timestamp = timestamp;
 
-      await manager.save(TokenTransfer, transfer);
+      transfers.push(transfer);
 
       // tokens 테이블에 토큰 주소만 우선 등록 (메타 정보는 별도 프로세스에서 채움)
       await this.ensureTokenExists(manager, tokenAddress, tokenExistsCache);
     }
+
+    return transfers;
   }
 
   /**
@@ -313,23 +452,25 @@ export class BlockIndexerService {
   }
 
   /**
-   * 컨트랙트 정보 저장 (컨트랙트 배포 감지 시)
+   * 컨트랙트 정보 파싱 (컨트랙트 배포 감지 시)
+   * (저장은 하지 않음, 중복 체크 포함)
    *
    * @param receiptData - Receipt 데이터
    * @param blockData - 블록 데이터
    * @param txData - 트랜잭션 데이터
    * @param manager - TypeORM EntityManager
+   * @returns Contract 엔티티 또는 null (이미 존재하거나 주소가 없는 경우)
    */
-  private async saveContract(
+  private async parseContract(
     receiptData: ChainReceiptDto,
     blockData: ChainBlockDto,
     txData: ChainTransactionDto,
     manager: any,
-  ): Promise<void> {
+  ): Promise<Contract | null> {
     const contractAddress = receiptData.contractAddress;
 
     if (!contractAddress) {
-      return;
+      return null;
     }
 
     // 이미 저장된 컨트랙트인지 확인
@@ -339,7 +480,7 @@ export class BlockIndexerService {
 
     if (existing) {
       this.logger.debug(`Contract ${contractAddress} already exists, skipping`);
-      return;
+      return null;
     }
 
     // 컨트랙트 바이트코드 조회 (체인에서)
@@ -367,11 +508,7 @@ export class BlockIndexerService {
     contract.optimization = null;
     contract.timestamp = hexToDecimalString(blockData.timestamp);
 
-    await manager.save(Contract, contract);
-
-    this.logger.log(
-      `Contract deployed and saved: ${contractAddress} (tx: ${receiptData.transactionHash})`,
-    );
+    return contract;
   }
 
   // 계정 정보는 더 이상 DB에 저장하지 않음

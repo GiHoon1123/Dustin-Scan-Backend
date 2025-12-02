@@ -99,19 +99,50 @@ describe('BlockIndexerService', () => {
   });
 
   describe('indexBlock', () => {
-    it('should skip if block already indexed', async () => {
+    it('should skip if block already indexed with all child entities', async () => {
       const mockManager = {
-        findOne: jest.fn().mockResolvedValue({ hash: '0xblockhash' }),
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce({ hash: '0xblockhash' }) // block exists
+          .mockResolvedValueOnce({ hash: '0xtx1' }) // transaction exists
+          .mockResolvedValueOnce({ transactionHash: '0xtx1' }), // receipt exists
         save: jest.fn(),
       };
       dataSource.transaction = jest.fn().mockImplementation(async (callback) => await callback(mockManager));
+      chainClient.getReceipt.mockResolvedValue(mockReceipt);
 
       await service.indexBlock(mockBlockData);
 
       expect(mockManager.findOne).toHaveBeenCalledWith(Block, {
         where: { hash: '0xblockhash' },
       });
+      // 하위 엔티티도 체크됨
+      expect(mockManager.findOne).toHaveBeenCalledWith(Transaction, {
+        where: { hash: '0xtx1' },
+      });
+      expect(mockManager.findOne).toHaveBeenCalledWith(TransactionReceipt, {
+        where: { transactionHash: '0xtx1' },
+      });
+      // 모든 엔티티가 있으면 save 호출 안 됨
       expect(mockManager.save).not.toHaveBeenCalled();
+    });
+
+    it('should re-index when block exists but transaction is missing', async () => {
+      const mockManager = {
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce({ hash: '0xblockhash' }) // block exists
+          .mockResolvedValueOnce(null), // transaction missing
+        save: jest.fn(),
+      };
+      dataSource.transaction = jest.fn().mockImplementation(async (callback) => await callback(mockManager));
+      chainClient.getReceipt.mockResolvedValue(mockReceipt);
+
+      await service.indexBlock(mockBlockData);
+
+      // 하위 엔티티가 없으면 재인덱싱
+      expect(mockManager.save).toHaveBeenCalledWith(Block, expect.any(Object));
+      expect(mockManager.save).toHaveBeenCalledWith(Transaction, expect.any(Array));
     });
 
     it('should index new block with transactions', async () => {
@@ -125,8 +156,9 @@ describe('BlockIndexerService', () => {
       await service.indexBlock(mockBlockData);
 
       expect(mockManager.save).toHaveBeenCalledWith(Block, expect.any(Object));
-      expect(mockManager.save).toHaveBeenCalledWith(Transaction, expect.any(Object));
-      expect(mockManager.save).toHaveBeenCalledWith(TransactionReceipt, expect.any(Object));
+      // Batch 저장: 배열로 저장됨
+      expect(mockManager.save).toHaveBeenCalledWith(Transaction, expect.any(Array));
+      expect(mockManager.save).toHaveBeenCalledWith(TransactionReceipt, expect.any(Array));
       expect(chainClient.getReceipt).toHaveBeenCalled();
     });
 
@@ -141,8 +173,11 @@ describe('BlockIndexerService', () => {
       await service.indexBlock(mockBlockData);
 
       expect(mockManager.save).toHaveBeenCalledWith(Block, expect.any(Object));
-      expect(mockManager.save).toHaveBeenCalledWith(Transaction, expect.any(Object));
-      expect(mockManager.save).not.toHaveBeenCalledWith(TransactionReceipt, expect.any(Object));
+      // Batch 저장: 배열로 저장됨
+      expect(mockManager.save).toHaveBeenCalledWith(Transaction, expect.any(Array));
+      // Receipt가 없으면 Receipt 저장 호출 안 됨
+      const receiptSaveCalls = mockManager.save.mock.calls.filter((call) => call[0] === TransactionReceipt);
+      expect(receiptSaveCalls).toHaveLength(0);
     });
 
     it('should save contract when contractAddress exists', async () => {
@@ -151,6 +186,7 @@ describe('BlockIndexerService', () => {
         findOne: jest
           .fn()
           .mockResolvedValueOnce(null) // block check
+          .mockResolvedValueOnce(null) // transaction check
           .mockResolvedValueOnce(null), // contract check
         save: jest.fn(),
       };
@@ -160,7 +196,8 @@ describe('BlockIndexerService', () => {
 
       await service.indexBlock(mockBlockData);
 
-      expect(mockManager.save).toHaveBeenCalledWith(Contract, expect.any(Object));
+      // Batch 저장: 배열로 저장됨
+      expect(mockManager.save).toHaveBeenCalledWith(Contract, expect.any(Array));
       expect(chainClient.getContractBytecode).toHaveBeenCalledWith('0xcontract');
     });
 
@@ -170,6 +207,7 @@ describe('BlockIndexerService', () => {
         findOne: jest
           .fn()
           .mockResolvedValueOnce(null) // block check
+          .mockResolvedValueOnce(null) // transaction check
           .mockResolvedValueOnce(null), // contract check
         save: jest.fn(),
       };
@@ -179,7 +217,8 @@ describe('BlockIndexerService', () => {
 
       await service.indexBlock(mockBlockData);
 
-      expect(mockManager.save).toHaveBeenCalledWith(Contract, expect.any(Object));
+      // Batch 저장: 배열로 저장됨 (bytecode는 null로 저장됨)
+      expect(mockManager.save).toHaveBeenCalledWith(Contract, expect.any(Array));
     });
 
     it('should skip contract save when contractAddress is null', async () => {
@@ -204,7 +243,9 @@ describe('BlockIndexerService', () => {
         findOne: jest
           .fn()
           .mockResolvedValueOnce(null) // block check
-          .mockResolvedValueOnce({ address: '0xcontract' }), // contract exists
+          .mockResolvedValueOnce(null) // transaction check
+          .mockResolvedValueOnce(null) // receipt check
+          .mockResolvedValueOnce({ address: '0xcontract' }), // contract exists (parseContract 내부에서 호출)
         save: jest.fn(),
       };
       dataSource.transaction = jest.fn().mockImplementation(async (callback) => await callback(mockManager));
@@ -228,8 +269,11 @@ describe('BlockIndexerService', () => {
             address: '0xTokenAddress',
             topics: [
               transferTopic,
-              '0xfrom1',
-              '0xto1',
+              // 32바이트 hex (64자리) - 마지막 40자리가 주소 (20바이트)
+              // 0x + 24자리 0 + 40자리 주소 = 66자리 (0x 포함)
+              // from1을 40자리로 패딩: 앞에 35개의 0 추가
+              '0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000from1',
+              '0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000to1',
             ],
             data: '0x01',
             logIndex: 0,
@@ -238,7 +282,12 @@ describe('BlockIndexerService', () => {
       };
 
       const mockManager = {
-        findOne: jest.fn().mockResolvedValue(null),
+        findOne: jest
+          .fn()
+          .mockResolvedValueOnce(null) // block check
+          .mockResolvedValueOnce(null) // transaction check
+          .mockResolvedValueOnce(null) // token transfer check
+          .mockResolvedValueOnce(null), // token check
         save: jest.fn(),
       };
 
@@ -249,15 +298,20 @@ describe('BlockIndexerService', () => {
 
       await service.indexBlock(mockBlockData);
 
-      // TokenTransfer 저장 확인
+      // TokenTransfer 저장 확인 (배열로 저장됨)
       const transferSaveCall = mockManager.save.mock.calls.find(
         (call) => call[0] === TokenTransfer,
       );
       expect(transferSaveCall).toBeDefined();
-      const savedTransfer = transferSaveCall?.[1] as TokenTransfer;
+      const savedTransfers = transferSaveCall?.[1] as TokenTransfer[];
+      expect(Array.isArray(savedTransfers)).toBe(true);
+      expect(savedTransfers.length).toBeGreaterThan(0);
+      const savedTransfer = savedTransfers[0];
       expect(savedTransfer.tokenAddress).toBe('0xtokenaddress');
-      expect(savedTransfer.from).toBe('0xfrom1');
-      expect(savedTransfer.to).toBe('0xto1');
+      // decodeAddressFromTopic은 마지막 40자리를 주소로 추출
+      // 토픽: '0x...00000000000000000000000000000000000from1' -> 마지막 40자리: '00000000000000000000000000000000000from1'
+      expect(savedTransfer.from).toBe('0x00000000000000000000000000000000000from1');
+      expect(savedTransfer.to).toBe('0x0000000000000000000000000000000000000to1');
       expect(savedTransfer.value).toBe('1');
 
       // Token 저장 확인
