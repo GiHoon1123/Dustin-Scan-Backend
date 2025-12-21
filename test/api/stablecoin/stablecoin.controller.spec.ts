@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CommonResponseDto } from '../../../apps/api/src/common/dto';
 import { StablecoinController } from '../../../apps/api/src/stablecoin/stablecoin.controller';
 import { StablecoinService } from '../../../apps/api/src/stablecoin/stablecoin.service';
 
@@ -33,95 +32,91 @@ describe('StablecoinController', () => {
   });
 
   describe('depositCollateral', () => {
-    it('should call service and return transaction response wrapped in CommonResponseDto', async () => {
+    it('should call service and return transaction response', async () => {
       const mockResponse = {
         hash: '0xtxhash123',
         status: 'pending',
       };
       service.depositCollateral.mockResolvedValue(mockResponse);
 
-      // 프론트로부터 DSTN 단위로 받음
       const result = await controller.depositCollateral({
         privateKey: '0xprivatekey',
-        amount: '1', // 1 DSTN
+        amount: '1000000000000000000',
       });
 
-      expect(service.depositCollateral).toHaveBeenCalledWith('0xprivatekey', '1');
-      expect(result).toBeInstanceOf(CommonResponseDto);
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('담보 예치 성공');
-      expect(result.data).toEqual(mockResponse);
+      expect(service.depositCollateral).toHaveBeenCalledWith(
+        '0xprivatekey',
+        '1000000000000000000',
+      );
+      expect(result).toEqual(mockResponse);
     });
   });
 
   describe('mintStablecoin', () => {
-    it('should call service and return transaction response wrapped in CommonResponseDto', async () => {
+    it('should call service and return transaction response', async () => {
       const mockResponse = {
         hash: '0xtxhash456',
         status: 'pending',
       };
       service.mintStablecoin.mockResolvedValue(mockResponse);
 
-      // 프론트로부터 DSTN 단위로 받음
       const result = await controller.mintStablecoin({
         privateKey: '0xprivatekey',
-        stablecoinAmount: '500', // 500 DSTN
+        stablecoinAmount: '500000000000000000000',
       });
 
-      expect(service.mintStablecoin).toHaveBeenCalledWith('0xprivatekey', '500');
-      expect(result).toBeInstanceOf(CommonResponseDto);
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('스테이블코인 발행 성공');
-      expect(result.data).toEqual(mockResponse);
+      expect(service.mintStablecoin).toHaveBeenCalledWith(
+        '0xprivatekey',
+        '500000000000000000000',
+      );
+      expect(result).toEqual(mockResponse);
     });
   });
 
   describe('redeemStablecoin', () => {
-    it('should call service and return transaction response wrapped in CommonResponseDto', async () => {
+    it('should call service and return transaction response', async () => {
       const mockResponse = {
         hash: '0xtxhash789',
         status: 'pending',
       };
       service.redeemStablecoin.mockResolvedValue(mockResponse);
 
-      // 프론트로부터 DSTN 단위로 받음
       const result = await controller.redeemStablecoin({
         privateKey: '0xprivatekey',
-        stablecoinAmount: '200', // 200 DSTN
+        stablecoinAmount: '200000000000000000000',
       });
 
-      expect(service.redeemStablecoin).toHaveBeenCalledWith('0xprivatekey', '200');
-      expect(result).toBeInstanceOf(CommonResponseDto);
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('스테이블코인 상환 성공');
-      expect(result.data).toEqual(mockResponse);
+      expect(service.redeemStablecoin).toHaveBeenCalledWith(
+        '0xprivatekey',
+        '200000000000000000000',
+      );
+      expect(result).toEqual(mockResponse);
     });
   });
 
   describe('withdrawCollateral', () => {
-    it('should call service and return transaction response wrapped in CommonResponseDto', async () => {
+    it('should call service and return transaction response', async () => {
       const mockResponse = {
         hash: '0xtxhashabc',
         status: 'pending',
       };
       service.withdrawCollateral.mockResolvedValue(mockResponse);
 
-      // 프론트로부터 DSTN 단위로 받음
       const result = await controller.withdrawCollateral({
         privateKey: '0xprivatekey',
-        amount: '0.5', // 0.5 DSTN
+        amount: '500000000000000000',
       });
 
-      expect(service.withdrawCollateral).toHaveBeenCalledWith('0xprivatekey', '0.5');
-      expect(result).toBeInstanceOf(CommonResponseDto);
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('담보 인출 성공');
-      expect(result.data).toEqual(mockResponse);
+      expect(service.withdrawCollateral).toHaveBeenCalledWith(
+        '0xprivatekey',
+        '500000000000000000',
+      );
+      expect(result).toEqual(mockResponse);
     });
   });
 
   describe('liquidate', () => {
-    it('should call service and return transaction response wrapped in CommonResponseDto', async () => {
+    it('should call service and return transaction response', async () => {
       const mockResponse = {
         hash: '0xtxhashdef',
         status: 'pending',
@@ -137,15 +132,12 @@ describe('StablecoinController', () => {
         '0xprivatekey',
         '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
       );
-      expect(result).toBeInstanceOf(CommonResponseDto);
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('청산 성공');
-      expect(result.data).toEqual(mockResponse);
+      expect(result).toEqual(mockResponse);
     });
   });
 
   describe('getPosition', () => {
-    it('should call service and return decoded position wrapped in CommonResponseDto', async () => {
+    it('should call service and return decoded position', async () => {
       const mockPosition = {
         collateralAmount: '1000000000000000000',
         debtAmount: '500000000000000000',
@@ -158,15 +150,12 @@ describe('StablecoinController', () => {
       expect(service.getPosition).toHaveBeenCalledWith(
         '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
       );
-      expect(result).toBeInstanceOf(CommonResponseDto);
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('포지션 조회 성공');
-      expect(result.data).toEqual(mockPosition);
+      expect(result).toEqual(mockPosition);
     });
   });
 
   describe('getHealth', () => {
-    it('should call service and return decoded health status wrapped in CommonResponseDto', async () => {
+    it('should call service and return decoded health status', async () => {
       const mockHealth = {
         isHealthy: true,
       };
@@ -177,10 +166,7 @@ describe('StablecoinController', () => {
       expect(service.getHealth).toHaveBeenCalledWith(
         '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
       );
-      expect(result).toBeInstanceOf(CommonResponseDto);
-      expect(result.success).toBe(true);
-      expect(result.message).toBe('헬스체크 성공');
-      expect(result.data).toEqual(mockHealth);
+      expect(result).toEqual(mockHealth);
     });
   });
 });

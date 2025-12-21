@@ -1,7 +1,6 @@
 import { ChainClientService } from '@app/chain-client';
 import {
   decodeMultipleUint256,
-  dstnToWei,
   hexToBoolean,
   hexToDecimalString,
 } from '@app/common';
@@ -41,20 +40,14 @@ export class StablecoinService {
    * 담보 예치
    *
    * POST /stablecoin/deposit
-   * @param privateKey - 사용자 개인키
-   * @param amount - 예치할 금액 (DSTN 단위, 10진수)
    */
   async depositCollateral(
     privateKey: string,
     amount: string,
   ): Promise<{ hash: string; status: string }> {
-    // DSTN → Wei → Hex 변환
-    const weiAmount = dstnToWei(amount);
-    const hexAmount = '0x' + BigInt(weiAmount).toString(16);
-
     const response = await this.client.post('/stablecoin/deposit', {
       privateKey,
-      amount: hexAmount,
+      amount,
     });
     return response.data;
   }
@@ -63,20 +56,14 @@ export class StablecoinService {
    * 스테이블코인 발행
    *
    * POST /stablecoin/mint
-   * @param privateKey - 사용자 개인키
-   * @param stablecoinAmount - 발행할 스테이블코인 양 (DSTN 단위, 10진수)
    */
   async mintStablecoin(
     privateKey: string,
     stablecoinAmount: string,
   ): Promise<{ hash: string; status: string }> {
-    // DSTN → Wei → Hex 변환
-    const weiAmount = dstnToWei(stablecoinAmount);
-    const hexAmount = '0x' + BigInt(weiAmount).toString(16);
-
     const response = await this.client.post('/stablecoin/mint', {
       privateKey,
-      stablecoinAmount: hexAmount,
+      stablecoinAmount,
     });
     return response.data;
   }
@@ -85,20 +72,14 @@ export class StablecoinService {
    * 스테이블코인 상환
    *
    * POST /stablecoin/redeem
-   * @param privateKey - 사용자 개인키
-   * @param stablecoinAmount - 상환할 스테이블코인 양 (DSTN 단위, 10진수)
    */
   async redeemStablecoin(
     privateKey: string,
     stablecoinAmount: string,
   ): Promise<{ hash: string; status: string }> {
-    // DSTN → Wei → Hex 변환
-    const weiAmount = dstnToWei(stablecoinAmount);
-    const hexAmount = '0x' + BigInt(weiAmount).toString(16);
-
     const response = await this.client.post('/stablecoin/redeem', {
       privateKey,
-      stablecoinAmount: hexAmount,
+      stablecoinAmount,
     });
     return response.data;
   }
@@ -107,20 +88,14 @@ export class StablecoinService {
    * 담보 인출
    *
    * POST /stablecoin/withdraw
-   * @param privateKey - 사용자 개인키
-   * @param amount - 인출할 금액 (DSTN 단위, 10진수)
    */
   async withdrawCollateral(
     privateKey: string,
     amount: string,
   ): Promise<{ hash: string; status: string }> {
-    // DSTN → Wei → Hex 변환
-    const weiAmount = dstnToWei(amount);
-    const hexAmount = '0x' + BigInt(weiAmount).toString(16);
-
     const response = await this.client.post('/stablecoin/withdraw', {
       privateKey,
-      amount: hexAmount,
+      amount,
     });
     return response.data;
   }
@@ -163,6 +138,7 @@ export class StablecoinService {
       return hexToDecimalString(hex);
     };
 
+    // 코어 수정: * 100을 제거하고 비율(배수)만 반환하므로 그대로 디코딩
     return {
       collateralAmount: decodeHex(data.collateralAmount),
       debtAmount: decodeHex(data.debtAmount),
@@ -171,7 +147,7 @@ export class StablecoinService {
   }
 
   /**
-   * 헬스체크 (디코딩 포함)
+   * 건강도 확인 (디코딩 포함)
    *
    * GET /stablecoin/health/:userAddress
    */

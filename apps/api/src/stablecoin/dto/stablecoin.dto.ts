@@ -17,13 +17,13 @@ export class DepositCollateralRequestDto {
   privateKey: string;
 
   @ApiProperty({
-    description: '예치할 금액 (DSTN 단위, 10진수)',
-    example: '1000',
+    description: '예치할 금액 (Wei 단위)',
+    example: '1000000000000000000000',
   })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d+(\.\d+)?$/, {
-    message: 'amount must be a positive number string in DSTN unit',
+  @Matches(/^\d+$/, {
+    message: 'amount must be a non-negative integer string',
   })
   amount: string;
 }
@@ -44,13 +44,13 @@ export class MintStablecoinRequestDto {
   privateKey: string;
 
   @ApiProperty({
-    description: '발행할 스테이블코인 양 (DSTN 단위, 10진수)',
-    example: '500',
+    description: '발행할 스테이블코인 양 (Wei 단위)',
+    example: '500000000000000000000',
   })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d+(\.\d+)?$/, {
-    message: 'stablecoinAmount must be a positive number string in DSTN unit',
+  @Matches(/^\d+$/, {
+    message: 'stablecoinAmount must be a non-negative integer string',
   })
   stablecoinAmount: string;
 }
@@ -71,13 +71,13 @@ export class RedeemStablecoinRequestDto {
   privateKey: string;
 
   @ApiProperty({
-    description: '상환할 스테이블코인 양 (DSTN 단위, 10진수)',
-    example: '500',
+    description: '상환할 스테이블코인 양 (Wei 단위)',
+    example: '500000000000000000000',
   })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d+(\.\d+)?$/, {
-    message: 'stablecoinAmount must be a positive number string in DSTN unit',
+  @Matches(/^\d+$/, {
+    message: 'stablecoinAmount must be a non-negative integer string',
   })
   stablecoinAmount: string;
 }
@@ -98,13 +98,13 @@ export class WithdrawCollateralRequestDto {
   privateKey: string;
 
   @ApiProperty({
-    description: '인출할 금액 (DSTN 단위, 10진수)',
-    example: '1000',
+    description: '인출할 금액 (Wei 단위)',
+    example: '1000000000000000000000',
   })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d+(\.\d+)?$/, {
-    message: 'amount must be a positive number string in DSTN unit',
+  @Matches(/^\d+$/, {
+    message: 'amount must be a non-negative integer string',
   })
   amount: string;
 }
@@ -170,18 +170,18 @@ export class PositionResponseDto {
   debtAmount: string;
 
   @ApiProperty({
-    description: '담보비율 (decimal string)',
-    example: '200',
+    description: '담보비율 (배수, decimal string). 코어에서 비율만 반환 (예: 1243 = 1,243배 = 124,300%)',
+    example: '1243',
   })
   collateralRatio: string;
 }
 
 /**
- * 헬스체크 조회 응답 DTO (디코딩된 값)
+ * 건강도 조회 응답 DTO (디코딩된 값)
  */
 export class HealthResponseDto {
   @ApiProperty({
-    description: '헬스체크 여부 (boolean)',
+    description: '건강도 여부 (boolean)',
     example: true,
   })
   isHealthy: boolean;

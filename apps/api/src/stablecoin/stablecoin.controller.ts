@@ -1,13 +1,10 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import {
-  ApiExtraModels,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
-  getSchemaPath,
 } from '@nestjs/swagger';
-import { CommonResponseDto } from '../common/dto';
 import { StablecoinService } from './stablecoin.service';
 import {
   DepositCollateralRequestDto,
@@ -27,12 +24,6 @@ import {
  * 코어 체인의 API를 프록시하고 응답을 디코딩하여 반환
  */
 @ApiTags('스테이블코인 (Stablecoin)')
-@ApiExtraModels(
-  CommonResponseDto,
-  TransactionResponseDto,
-  PositionResponseDto,
-  HealthResponseDto,
-)
 @Controller('stablecoin')
 export class StablecoinController {
   constructor(private readonly stablecoinService: StablecoinService) {}
@@ -50,25 +41,15 @@ export class StablecoinController {
   @ApiResponse({
     status: 201,
     description: '담보 예치 성공',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(CommonResponseDto) },
-        {
-          properties: {
-            data: { $ref: getSchemaPath(TransactionResponseDto) },
-          },
-        },
-      ],
-    },
+    type: TransactionResponseDto,
   })
   async depositCollateral(
     @Body() body: DepositCollateralRequestDto,
-  ): Promise<CommonResponseDto<TransactionResponseDto>> {
-    const result = await this.stablecoinService.depositCollateral(
+  ): Promise<TransactionResponseDto> {
+    return await this.stablecoinService.depositCollateral(
       body.privateKey,
       body.amount,
     );
-    return CommonResponseDto.success(result, '담보 예치 성공');
   }
 
   /**
@@ -84,25 +65,15 @@ export class StablecoinController {
   @ApiResponse({
     status: 201,
     description: '스테이블코인 발행 성공',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(CommonResponseDto) },
-        {
-          properties: {
-            data: { $ref: getSchemaPath(TransactionResponseDto) },
-          },
-        },
-      ],
-    },
+    type: TransactionResponseDto,
   })
   async mintStablecoin(
     @Body() body: MintStablecoinRequestDto,
-  ): Promise<CommonResponseDto<TransactionResponseDto>> {
-    const result = await this.stablecoinService.mintStablecoin(
+  ): Promise<TransactionResponseDto> {
+    return await this.stablecoinService.mintStablecoin(
       body.privateKey,
       body.stablecoinAmount,
     );
-    return CommonResponseDto.success(result, '스테이블코인 발행 성공');
   }
 
   /**
@@ -118,25 +89,15 @@ export class StablecoinController {
   @ApiResponse({
     status: 201,
     description: '스테이블코인 상환 성공',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(CommonResponseDto) },
-        {
-          properties: {
-            data: { $ref: getSchemaPath(TransactionResponseDto) },
-          },
-        },
-      ],
-    },
+    type: TransactionResponseDto,
   })
   async redeemStablecoin(
     @Body() body: RedeemStablecoinRequestDto,
-  ): Promise<CommonResponseDto<TransactionResponseDto>> {
-    const result = await this.stablecoinService.redeemStablecoin(
+  ): Promise<TransactionResponseDto> {
+    return await this.stablecoinService.redeemStablecoin(
       body.privateKey,
       body.stablecoinAmount,
     );
-    return CommonResponseDto.success(result, '스테이블코인 상환 성공');
   }
 
   /**
@@ -152,25 +113,15 @@ export class StablecoinController {
   @ApiResponse({
     status: 201,
     description: '담보 인출 성공',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(CommonResponseDto) },
-        {
-          properties: {
-            data: { $ref: getSchemaPath(TransactionResponseDto) },
-          },
-        },
-      ],
-    },
+    type: TransactionResponseDto,
   })
   async withdrawCollateral(
     @Body() body: WithdrawCollateralRequestDto,
-  ): Promise<CommonResponseDto<TransactionResponseDto>> {
-    const result = await this.stablecoinService.withdrawCollateral(
+  ): Promise<TransactionResponseDto> {
+    return await this.stablecoinService.withdrawCollateral(
       body.privateKey,
       body.amount,
     );
-    return CommonResponseDto.success(result, '담보 인출 성공');
   }
 
   /**
@@ -186,25 +137,15 @@ export class StablecoinController {
   @ApiResponse({
     status: 201,
     description: '청산 성공',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(CommonResponseDto) },
-        {
-          properties: {
-            data: { $ref: getSchemaPath(TransactionResponseDto) },
-          },
-        },
-      ],
-    },
+    type: TransactionResponseDto,
   })
   async liquidate(
     @Body() body: LiquidateRequestDto,
-  ): Promise<CommonResponseDto<TransactionResponseDto>> {
-    const result = await this.stablecoinService.liquidate(
+  ): Promise<TransactionResponseDto> {
+    return await this.stablecoinService.liquidate(
       body.privateKey,
       body.userAddress,
     );
-    return CommonResponseDto.success(result, '청산 성공');
   }
 
   /**
@@ -225,33 +166,23 @@ export class StablecoinController {
   @ApiResponse({
     status: 200,
     description: '포지션 조회 성공',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(CommonResponseDto) },
-        {
-          properties: {
-            data: { $ref: getSchemaPath(PositionResponseDto) },
-          },
-        },
-      ],
-    },
+    type: PositionResponseDto,
   })
   async getPosition(
     @Param('userAddress') userAddress: string,
-  ): Promise<CommonResponseDto<PositionResponseDto>> {
-    const result = await this.stablecoinService.getPosition(userAddress);
-    return CommonResponseDto.success(result, '포지션 조회 성공');
+  ): Promise<PositionResponseDto> {
+    return await this.stablecoinService.getPosition(userAddress);
   }
 
   /**
-   * 헬스체크
+   * 건강도 확인
    *
    * GET /stablecoin/health/:userAddress
    */
   @Get('health/:userAddress')
   @ApiOperation({
-    summary: '헬스체크',
-    description: '사용자 포지션의 헬스체크(담보비율 150% 이상)를 확인합니다. (디코딩된 값)',
+    summary: '건강도 확인',
+    description: '사용자 포지션의 건강도(담보비율 150% 이상)를 확인합니다. (디코딩된 값)',
   })
   @ApiParam({
     name: 'userAddress',
@@ -260,23 +191,13 @@ export class StablecoinController {
   })
   @ApiResponse({
     status: 200,
-    description: '헬스체크 성공',
-    schema: {
-      allOf: [
-        { $ref: getSchemaPath(CommonResponseDto) },
-        {
-          properties: {
-            data: { $ref: getSchemaPath(HealthResponseDto) },
-          },
-        },
-      ],
-    },
+    description: '건강도 확인 성공',
+    type: HealthResponseDto,
   })
   async getHealth(
     @Param('userAddress') userAddress: string,
-  ): Promise<CommonResponseDto<HealthResponseDto>> {
-    const result = await this.stablecoinService.getHealth(userAddress);
-    return CommonResponseDto.success(result, '헬스체크 성공');
+  ): Promise<HealthResponseDto> {
+    return await this.stablecoinService.getHealth(userAddress);
   }
 }
 
