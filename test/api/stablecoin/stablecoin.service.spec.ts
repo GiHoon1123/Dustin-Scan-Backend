@@ -56,7 +56,7 @@ describe('StablecoinService', () => {
   });
 
   describe('depositCollateral', () => {
-    it('should call core API and return transaction hash', async () => {
+    it('should convert DSTN to hex wei and call core API', async () => {
       const mockResponse = {
         data: {
           hash: '0xtxhash123',
@@ -66,21 +66,47 @@ describe('StablecoinService', () => {
 
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
-      const result = await service.depositCollateral('0xprivatekey', '1000000000000000000');
+      // 프론트로부터 DSTN 단위로 받음 (예: "1" DSTN)
+      const result = await service.depositCollateral('0xprivatekey', '1');
 
+      // 코어로는 hex wei 단위로 전송 (1 DSTN = 0xde0b6b3a7640000 wei)
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/deposit', {
         privateKey: '0xprivatekey',
-        amount: '1000000000000000000',
+        amount: '0xde0b6b3a7640000',
       });
       expect(result).toEqual({
         hash: '0xtxhash123',
         status: 'pending',
       });
     });
+
+    it('should handle decimal amounts correctly', async () => {
+      const mockResponse = {
+        data: {
+          hash: '0xtxhashdec1',
+          status: 'pending',
+        },
+      };
+
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
+
+      // 소수점 테스트: 0.5 DSTN
+      const result = await service.depositCollateral('0xprivatekey', '0.5');
+
+      // 0.5 DSTN = 500000000000000000 wei = 0x6f05b59d3b20000
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/deposit', {
+        privateKey: '0xprivatekey',
+        amount: '0x6f05b59d3b20000',
+      });
+      expect(result).toEqual({
+        hash: '0xtxhashdec1',
+        status: 'pending',
+      });
+    });
   });
 
   describe('mintStablecoin', () => {
-    it('should call core API and return transaction hash', async () => {
+    it('should convert DSTN to hex wei and call core API', async () => {
       const mockResponse = {
         data: {
           hash: '0xtxhash456',
@@ -90,21 +116,47 @@ describe('StablecoinService', () => {
 
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
-      const result = await service.mintStablecoin('0xprivatekey', '500000000000000000000');
+      // 프론트로부터 DSTN 단위로 받음 (예: "500" DSTN)
+      const result = await service.mintStablecoin('0xprivatekey', '500');
 
+      // 코어로는 hex wei 단위로 전송 (500 DSTN = 0x1b1ae4d6e2ef500000 wei)
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/mint', {
         privateKey: '0xprivatekey',
-        stablecoinAmount: '500000000000000000000',
+        stablecoinAmount: '0x1b1ae4d6e2ef500000',
       });
       expect(result).toEqual({
         hash: '0xtxhash456',
         status: 'pending',
       });
     });
+
+    it('should handle decimal amounts correctly', async () => {
+      const mockResponse = {
+        data: {
+          hash: '0xtxhashdec2',
+          status: 'pending',
+        },
+      };
+
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
+
+      // 소수점 테스트: 100.5 DSTN
+      const result = await service.mintStablecoin('0xprivatekey', '100.5');
+
+      // 100.5 DSTN = 100500000000000000000 wei = 0x572b7b98736c20000
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/mint', {
+        privateKey: '0xprivatekey',
+        stablecoinAmount: '0x572b7b98736c20000',
+      });
+      expect(result).toEqual({
+        hash: '0xtxhashdec2',
+        status: 'pending',
+      });
+    });
   });
 
   describe('redeemStablecoin', () => {
-    it('should call core API and return transaction hash', async () => {
+    it('should convert DSTN to hex wei and call core API', async () => {
       const mockResponse = {
         data: {
           hash: '0xtxhash789',
@@ -114,11 +166,13 @@ describe('StablecoinService', () => {
 
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
-      const result = await service.redeemStablecoin('0xprivatekey', '200000000000000000000');
+      // 프론트로부터 DSTN 단위로 받음 (예: "200" DSTN)
+      const result = await service.redeemStablecoin('0xprivatekey', '200');
 
+      // 코어로는 hex wei 단위로 전송 (200 DSTN = 0xad78ebc5ac6200000 wei)
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/redeem', {
         privateKey: '0xprivatekey',
-        stablecoinAmount: '200000000000000000000',
+        stablecoinAmount: '0xad78ebc5ac6200000',
       });
       expect(result).toEqual({
         hash: '0xtxhash789',
@@ -128,7 +182,7 @@ describe('StablecoinService', () => {
   });
 
   describe('withdrawCollateral', () => {
-    it('should call core API and return transaction hash', async () => {
+    it('should convert DSTN to hex wei and call core API', async () => {
       const mockResponse = {
         data: {
           hash: '0xtxhashabc',
@@ -138,14 +192,40 @@ describe('StablecoinService', () => {
 
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
-      const result = await service.withdrawCollateral('0xprivatekey', '500000000000000000');
+      // 프론트로부터 DSTN 단위로 받음 (예: "0.5" DSTN)
+      const result = await service.withdrawCollateral('0xprivatekey', '0.5');
 
+      // 코어로는 hex wei 단위로 전송 (0.5 DSTN = 0x6f05b59d3b20000 wei)
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/withdraw', {
         privateKey: '0xprivatekey',
-        amount: '500000000000000000',
+        amount: '0x6f05b59d3b20000',
       });
       expect(result).toEqual({
         hash: '0xtxhashabc',
+        status: 'pending',
+      });
+    });
+
+    it('should handle decimal amounts correctly', async () => {
+      const mockResponse = {
+        data: {
+          hash: '0xtxhashdec',
+          status: 'pending',
+        },
+      };
+
+      mockAxiosInstance.post.mockResolvedValue(mockResponse);
+
+      // 소수점 테스트: 1.5 DSTN
+      const result = await service.withdrawCollateral('0xprivatekey', '1.5');
+
+      // 1.5 DSTN = 1500000000000000000 wei = 0x14d1120d7b160000
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/withdraw', {
+        privateKey: '0xprivatekey',
+        amount: '0x14d1120d7b160000',
+      });
+      expect(result).toEqual({
+        hash: '0xtxhashdec',
         status: 'pending',
       });
     });

@@ -40,15 +40,13 @@ describe('StablecoinController', () => {
       };
       service.depositCollateral.mockResolvedValue(mockResponse);
 
+      // 프론트로부터 DSTN 단위로 받음
       const result = await controller.depositCollateral({
         privateKey: '0xprivatekey',
-        amount: '1000000000000000000',
+        amount: '1', // 1 DSTN
       });
 
-      expect(service.depositCollateral).toHaveBeenCalledWith(
-        '0xprivatekey',
-        '1000000000000000000',
-      );
+      expect(service.depositCollateral).toHaveBeenCalledWith('0xprivatekey', '1');
       expect(result).toBeInstanceOf(CommonResponseDto);
       expect(result.success).toBe(true);
       expect(result.message).toBe('담보 예치 성공');
@@ -64,15 +62,13 @@ describe('StablecoinController', () => {
       };
       service.mintStablecoin.mockResolvedValue(mockResponse);
 
+      // 프론트로부터 DSTN 단위로 받음
       const result = await controller.mintStablecoin({
         privateKey: '0xprivatekey',
-        stablecoinAmount: '500000000000000000000',
+        stablecoinAmount: '500', // 500 DSTN
       });
 
-      expect(service.mintStablecoin).toHaveBeenCalledWith(
-        '0xprivatekey',
-        '500000000000000000000',
-      );
+      expect(service.mintStablecoin).toHaveBeenCalledWith('0xprivatekey', '500');
       expect(result).toBeInstanceOf(CommonResponseDto);
       expect(result.success).toBe(true);
       expect(result.message).toBe('스테이블코인 발행 성공');
@@ -88,15 +84,13 @@ describe('StablecoinController', () => {
       };
       service.redeemStablecoin.mockResolvedValue(mockResponse);
 
+      // 프론트로부터 DSTN 단위로 받음
       const result = await controller.redeemStablecoin({
         privateKey: '0xprivatekey',
-        stablecoinAmount: '200000000000000000000',
+        stablecoinAmount: '200', // 200 DSTN
       });
 
-      expect(service.redeemStablecoin).toHaveBeenCalledWith(
-        '0xprivatekey',
-        '200000000000000000000',
-      );
+      expect(service.redeemStablecoin).toHaveBeenCalledWith('0xprivatekey', '200');
       expect(result).toBeInstanceOf(CommonResponseDto);
       expect(result.success).toBe(true);
       expect(result.message).toBe('스테이블코인 상환 성공');
@@ -112,15 +106,13 @@ describe('StablecoinController', () => {
       };
       service.withdrawCollateral.mockResolvedValue(mockResponse);
 
+      // 프론트로부터 DSTN 단위로 받음
       const result = await controller.withdrawCollateral({
         privateKey: '0xprivatekey',
-        amount: '500000000000000000',
+        amount: '0.5', // 0.5 DSTN
       });
 
-      expect(service.withdrawCollateral).toHaveBeenCalledWith(
-        '0xprivatekey',
-        '500000000000000000',
-      );
+      expect(service.withdrawCollateral).toHaveBeenCalledWith('0xprivatekey', '0.5');
       expect(result).toBeInstanceOf(CommonResponseDto);
       expect(result.success).toBe(true);
       expect(result.message).toBe('담보 인출 성공');
@@ -187,7 +179,7 @@ describe('StablecoinController', () => {
       );
       expect(result).toBeInstanceOf(CommonResponseDto);
       expect(result.success).toBe(true);
-      expect(result.message).toBe('건강도 확인 성공');
+      expect(result.message).toBe('헬스체크 성공');
       expect(result.data).toEqual(mockHealth);
     });
   });

@@ -244,14 +244,14 @@ export class StablecoinController {
   }
 
   /**
-   * 건강도 확인
+   * 헬스체크
    *
    * GET /stablecoin/health/:userAddress
    */
   @Get('health/:userAddress')
   @ApiOperation({
-    summary: '건강도 확인',
-    description: '사용자 포지션의 건강도(담보비율 150% 이상)를 확인합니다. (디코딩된 값)',
+    summary: '헬스체크',
+    description: '사용자 포지션의 헬스체크(담보비율 150% 이상)를 확인합니다. (디코딩된 값)',
   })
   @ApiParam({
     name: 'userAddress',
@@ -260,7 +260,7 @@ export class StablecoinController {
   })
   @ApiResponse({
     status: 200,
-    description: '건강도 확인 성공',
+    description: '헬스체크 성공',
     schema: {
       allOf: [
         { $ref: getSchemaPath(CommonResponseDto) },
@@ -276,7 +276,7 @@ export class StablecoinController {
     @Param('userAddress') userAddress: string,
   ): Promise<CommonResponseDto<HealthResponseDto>> {
     const result = await this.stablecoinService.getHealth(userAddress);
-    return CommonResponseDto.success(result, '건강도 확인 성공');
+    return CommonResponseDto.success(result, '헬스체크 성공');
   }
 }
 
