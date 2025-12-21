@@ -15,6 +15,7 @@ import { AccountsModule } from './accounts/accounts.module';
 import { BlocksModule } from './blocks/blocks.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { HealthController } from './health/health.controller';
+import { StablecoinModule } from './stablecoin/stablecoin.module';
 import { TransactionsModule } from './transactions/transactions.module';
 
 @Module({
@@ -46,6 +47,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     TransactionsModule,
     AccountsModule,
     ContractsModule,
+    StablecoinModule,
   ],
   controllers: [HealthController],
 })

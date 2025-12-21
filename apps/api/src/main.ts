@@ -25,6 +25,7 @@ export async function bootstrap() {
     .addTag('블록 (Blocks)', '블록 정보 조회 API')
     .addTag('트랜잭션 (Transactions)', '트랜잭션 정보 조회 API')
     .addTag('계정 (Accounts)', '계정 정보 조회 API (실시간 RPC)')
+    .addTag('스테이블코인 (Stablecoin)', '스테이블코인 시스템 API (코어 프록시)')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

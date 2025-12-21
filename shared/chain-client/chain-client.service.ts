@@ -5,7 +5,6 @@ import {
   ChainStatsDto,
   ChainTransactionDto,
 } from '@app/common';
-import { retryWithExponentialBackoff } from '@app/common';
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
@@ -48,28 +47,16 @@ export class ChainClientService {
    * 최신 블록 조회
    *
    * GET /block/latest
-   *
-   * 지수적 재시도 적용: 네트워크 에러, 타임아웃, 5xx 에러 시 자동 재시도
    */
   async getLatestBlock(): Promise<ChainBlockDto> {
-    return retryWithExponentialBackoff(
-      async () => {
-        const response = await this.client.get<ChainBlockDto>('/block/latest');
-        this.logger.debug(`Fetched latest block: #${parseInt(response.data.number, 16)}`);
-        return response.data;
-      },
-        {
-          maxRetries: 5,
-          initialDelay: 1000,
-          maxDelay: 180000, // 3분
-          onRetry: (error, attempt, delay) => {
-            this.logger.warn(
-              `Failed to fetch latest block (attempt ${attempt}/5), retrying in ${Math.round(delay / 1000)}s...`,
-              error.message,
-            );
-          },
-        },
-    );
+    try {
+      const response = await this.client.get<ChainBlockDto>('/block/latest');
+      this.logger.debug(`Fetched latest block: #${parseInt(response.data.number, 16)}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to fetch latest block', error);
+      throw error;
+    }
   }
 
   /**
@@ -77,31 +64,13 @@ export class ChainClientService {
    *
    * GET /block/number/:number
    *
-   * 지수적 재시도 적용: 네트워크 에러, 타임아웃, 5xx 에러 시 자동 재시도
-   * 404 에러는 재시도하지 않음 (블록이 아직 생성되지 않았을 수 있음 - 정상 상황)
-   *
    * @param blockNumber - 조회할 블록 번호
    * @returns 블록 데이터 (없으면 null)
    */
   async getBlockByNumber(blockNumber: number): Promise<ChainBlockDto | null> {
     try {
-      return await retryWithExponentialBackoff(
-        async () => {
-          const response = await this.client.get<ChainBlockDto>(`/block/number/${blockNumber}`);
-          return response.data;
-        },
-        {
-          maxRetries: 5,
-          initialDelay: 1000,
-          maxDelay: 180000, // 3분
-          onRetry: (error, attempt, delay) => {
-            this.logger.warn(
-              `Failed to fetch block #${blockNumber} (attempt ${attempt}/5), retrying in ${Math.round(delay / 1000)}s...`,
-              error.message,
-            );
-          },
-        },
-      );
+      const response = await this.client.get<ChainBlockDto>(`/block/number/${blockNumber}`);
+      return response.data;
     } catch (error: any) {
       // 404 에러는 블록이 아직 생성되지 않았음을 의미 (정상 상황, 조용히 null 반환)
       if (error.response?.status === 404) {
@@ -117,86 +86,50 @@ export class ChainClientService {
    * 블록 해시로 조회
    *
    * GET /block/hash/:hash
-   *
-   * 지수적 재시도 적용: 네트워크 에러, 타임아웃, 5xx 에러 시 자동 재시도
    */
   async getBlockByHash(blockHash: string): Promise<ChainBlockDto> {
-    return retryWithExponentialBackoff(
-      async () => {
-        const response = await this.client.get<ChainBlockDto>(`/block/hash/${blockHash}`);
-        this.logger.debug(`Fetched block ${blockHash}`);
-        return response.data;
-      },
-        {
-          maxRetries: 5,
-          initialDelay: 1000,
-          maxDelay: 180000, // 3분
-          onRetry: (error, attempt, delay) => {
-            this.logger.warn(
-              `Failed to fetch block ${blockHash} (attempt ${attempt}/5), retrying in ${Math.round(delay / 1000)}s...`,
-              error.message,
-            );
-          },
-        },
-    );
+    try {
+      const response = await this.client.get<ChainBlockDto>(`/block/hash/${blockHash}`);
+      this.logger.debug(`Fetched block ${blockHash}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to fetch block ${blockHash}`, error);
+      throw error;
+    }
   }
 
   /**
    * 체인 통계 조회
    *
    * GET /block/stats
-   *
-   * 지수적 재시도 적용: 네트워크 에러, 타임아웃, 5xx 에러 시 자동 재시도
    */
   async getChainStats(): Promise<ChainStatsDto> {
-    return retryWithExponentialBackoff(
-      async () => {
-        const response = await this.client.get<ChainStatsDto>('/block/stats');
-        this.logger.debug(
-          `Fetched chain stats: height=${response.data.height}, txs=${response.data.totalTransactions}`,
-        );
-        return response.data;
-      },
-        {
-          maxRetries: 5,
-          initialDelay: 1000,
-          maxDelay: 180000, // 3분
-          onRetry: (error, attempt, delay) => {
-            this.logger.warn(
-              `Failed to fetch chain stats (attempt ${attempt}/5), retrying in ${Math.round(delay / 1000)}s...`,
-              error.message,
-            );
-          },
-        },
-    );
+    try {
+      const response = await this.client.get<ChainStatsDto>('/block/stats');
+      this.logger.debug(
+        `Fetched chain stats: height=${response.data.height}, txs=${response.data.totalTransactions}`,
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to fetch chain stats', error);
+      throw error;
+    }
   }
 
   /**
    * 트랜잭션 조회
    *
    * GET /transaction/:hash
-   *
-   * 지수적 재시도 적용: 네트워크 에러, 타임아웃, 5xx 에러 시 자동 재시도
    */
   async getTransaction(txHash: string): Promise<ChainTransactionDto> {
-    return retryWithExponentialBackoff(
-      async () => {
-        const response = await this.client.get<ChainTransactionDto>(`/transaction/${txHash}`);
-        this.logger.debug(`Fetched transaction ${txHash}`);
-        return response.data;
-      },
-        {
-          maxRetries: 5,
-          initialDelay: 1000,
-          maxDelay: 180000, // 3분
-          onRetry: (error, attempt, delay) => {
-            this.logger.warn(
-              `Failed to fetch transaction ${txHash} (attempt ${attempt}/5), retrying in ${Math.round(delay / 1000)}s...`,
-              error.message,
-            );
-          },
-        },
-    );
+    try {
+      const response = await this.client.get<ChainTransactionDto>(`/transaction/${txHash}`);
+      this.logger.debug(`Fetched transaction ${txHash}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to fetch transaction ${txHash}`, error);
+      throw error;
+    }
   }
 
   /**
@@ -209,41 +142,19 @@ export class ChainClientService {
    * - gasUsed: 사용된 Gas
    * - logs: 이벤트 로그
    *
-   * 지수적 재시도 적용: 네트워크 에러, 타임아웃, 5xx 에러 시 자동 재시도
-   * 404 에러는 재시도하지 않음 (Receipt가 아직 생성되지 않았을 수 있음 - 정상 상황)
-   *
    * @param txHash 트랜잭션 해시
    * @returns Receipt 정보 (없으면 null)
    */
   async getReceipt(txHash: string): Promise<ChainReceiptDto | null> {
     try {
-      return await retryWithExponentialBackoff(
-        async () => {
-          const response = await this.client.get<ChainReceiptDto | null>(
-            `/transaction/${txHash}/receipt`,
-          );
-          if (!response.data) {
-            this.logger.debug(`No receipt found for transaction ${txHash} (pending)`);
-          }
-          return response.data;
-        },
-        {
-          maxRetries: 5,
-          initialDelay: 1000,
-          maxDelay: 180000, // 3분
-          onRetry: (error, attempt, delay) => {
-            this.logger.warn(
-              `Failed to fetch receipt for transaction ${txHash} (attempt ${attempt}/5), retrying in ${Math.round(delay / 1000)}s...`,
-              error.message,
-            );
-          },
-        },
+      const response = await this.client.get<ChainReceiptDto | null>(
+        `/transaction/${txHash}/receipt`,
       );
-    } catch (error: any) {
-      // 404 에러는 Receipt가 아직 생성되지 않았음을 의미 (정상 상황, 조용히 null 반환)
-      if (error.response?.status === 404) {
-        return null;
+      if (!response.data) {
+        this.logger.debug(`No receipt found for transaction ${txHash} (pending)`);
       }
+      return response.data;
+    } catch (error) {
       this.logger.error(`Failed to fetch receipt for transaction ${txHash}`, error);
       throw error;
     }
@@ -253,28 +164,16 @@ export class ChainClientService {
    * 계정 정보 조회
    *
    * GET /account/:address
-   *
-   * 지수적 재시도 적용: 네트워크 에러, 타임아웃, 5xx 에러 시 자동 재시도
    */
   async getAccount(address: string): Promise<ChainAccountDto> {
-    return retryWithExponentialBackoff(
-      async () => {
-        const response = await this.client.get<ChainAccountDto>(`/account/${address}`);
-        this.logger.debug(`Fetched account ${address}`);
-        return response.data;
-      },
-        {
-          maxRetries: 5,
-          initialDelay: 1000,
-          maxDelay: 180000, // 3분
-          onRetry: (error, attempt, delay) => {
-            this.logger.warn(
-              `Failed to fetch account ${address} (attempt ${attempt}/5), retrying in ${Math.round(delay / 1000)}s...`,
-              error.message,
-            );
-          },
-        },
-    );
+    try {
+      const response = await this.client.get<ChainAccountDto>(`/account/${address}`);
+      this.logger.debug(`Fetched account ${address}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error(`Failed to fetch account ${address}`, error);
+      throw error;
+    }
   }
 
   /**
@@ -302,31 +201,11 @@ export class ChainClientService {
    * 컨트랙트 바이트코드 조회
    *
    * GET /contract/:address/bytecode
-   *
-   * 지수적 재시도 적용: 네트워크 에러, 타임아웃, 5xx 에러 시 자동 재시도
-   * 에러 발생 시 빈 바이트코드 반환 (재시도 실패해도 계속 진행)
    */
   async getContractBytecode(address: string): Promise<string> {
     try {
-      return await retryWithExponentialBackoff(
-        async () => {
-          const response = await this.client.get<{ bytecode: string }>(
-            `/contract/${address}/bytecode`,
-          );
-          return response.data.bytecode || '0x';
-        },
-        {
-          maxRetries: 5,
-          initialDelay: 1000,
-          maxDelay: 180000, // 3분
-          onRetry: (error, attempt, delay) => {
-            this.logger.warn(
-              `Failed to fetch contract bytecode for ${address} (attempt ${attempt}/5), retrying in ${Math.round(delay / 1000)}s...`,
-              error.message,
-            );
-          },
-        },
-      );
+      const response = await this.client.get<{ bytecode: string }>(`/contract/${address}/bytecode`);
+      return response.data.bytecode || '0x';
     } catch (error) {
       this.logger.error(`Failed to fetch contract bytecode for ${address}`, error);
       return '0x'; // 없으면 빈 바이트코드

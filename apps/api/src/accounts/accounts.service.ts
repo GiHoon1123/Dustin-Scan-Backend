@@ -1,7 +1,8 @@
 import { ChainClientService } from '@app/chain-client';
 import { hexToDecimal, weiToDstn } from '@app/common';
 import { Token, TokenRepository, TokenTransfer, TokenTransferRepository, TransactionRepository } from '@app/database';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import axios, { AxiosInstance } from 'axios';
 import { AccountResponseDto } from './dto/account-response.dto';
 import { TokenBalanceDto } from './dto/token-balance.dto';
 import { TokenTransferItemDto } from './dto/token-transfer-item.dto';
@@ -16,12 +17,28 @@ import { TokenTransferItemDto } from './dto/token-transfer-item.dto';
  */
 @Injectable()
 export class AccountsService {
+  private readonly logger = new Logger(AccountsService.name);
+  private readonly chainHttpClient: AxiosInstance;
+
   constructor(
     private readonly transactionRepo: TransactionRepository,
     private readonly tokenTransferRepo: TokenTransferRepository,
     private readonly tokenRepo: TokenRepository,
     private readonly chainClient: ChainClientService,
-  ) {}
+  ) {
+    const chainUrl = process.env.CHAIN_URL;
+    if (!chainUrl) {
+      throw new Error('CHAIN_URL environment variable is required');
+    }
+
+    this.chainHttpClient = axios.create({
+      baseURL: chainUrl,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
 
   /**
    * 계정 상세 조회
@@ -131,6 +148,22 @@ export class AccountsService {
     });
 
     return { items, totalCount };
+  }
+
+  /**
+   * 새 지갑 생성
+   *
+   * POST /account/create-wallet
+   */
+  async createWallet(): Promise<{
+    privateKey: string;
+    publicKey: string;
+    address: string;
+    balance: string;
+    nonce: number;
+  }> {
+    const response = await this.chainHttpClient.post('/account/create-wallet');
+    return response.data;
   }
 
   /**

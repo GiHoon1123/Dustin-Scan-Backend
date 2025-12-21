@@ -7,7 +7,11 @@ import {
 } from '@app/database';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import axios from 'axios';
 import { AccountsService } from '../../../apps/api/src/accounts/accounts.service';
+
+// axios 모킹
+jest.mock('axios');
 
 describe('AccountsService', () => {
   let service: AccountsService;
@@ -15,6 +19,7 @@ describe('AccountsService', () => {
   let chainClient: jest.Mocked<ChainClientService>;
   let tokenTransferRepo: jest.Mocked<TokenTransferRepository>;
   let tokenRepo: jest.Mocked<TokenRepository>;
+  let mockAxiosInstance: any;
 
   const mockChainAccount: ChainAccountDto = {
     address: '0x123',
@@ -23,6 +28,16 @@ describe('AccountsService', () => {
   };
 
   beforeEach(async () => {
+    // axios.create 모킹
+    mockAxiosInstance = {
+      post: jest.fn(),
+      get: jest.fn(),
+    };
+    (axios.create as jest.Mock) = jest.fn(() => mockAxiosInstance);
+
+    // 환경 변수 설정
+    process.env.CHAIN_URL = 'http://localhost:3000';
+
     const mockTxRepo = {
       countByAddress: jest.fn(),
     };
@@ -42,6 +57,7 @@ describe('AccountsService', () => {
 
     const mockChainClient = {
       getAccount: jest.fn(),
+      createWallet: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -186,6 +202,30 @@ describe('AccountsService', () => {
       expect(result.items[0].direction).toBe('out');
       expect(result.totalCount).toBe(1);
     });
+  });
+
+  describe('createWallet', () => {
+    it('should call core API and return wallet information', async () => {
+      const mockWallet = {
+        privateKey: '0xprivatekey123',
+        publicKey: '0xpublickey123',
+        address: '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
+        balance: '0',
+        nonce: 0,
+      };
+
+      mockAxiosInstance.post.mockResolvedValue({ data: mockWallet });
+
+      const result = await service.createWallet();
+
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith('/account/create-wallet');
+      expect(result).toEqual(mockWallet);
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+    delete process.env.CHAIN_URL;
   });
 });
 

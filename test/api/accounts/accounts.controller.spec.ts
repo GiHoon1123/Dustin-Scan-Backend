@@ -23,6 +23,7 @@ describe('AccountsController', () => {
       getAccount: jest.fn(),
       getTokenBalances: jest.fn(),
       getTokenTransfers: jest.fn(),
+      createWallet: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -97,6 +98,26 @@ describe('AccountsController', () => {
       expect(result.data.items).toHaveLength(1);
       expect(result.data.totalCount).toBe(1);
       expect(service.getTokenTransfers).toHaveBeenCalled();
+    });
+  });
+
+  describe('createWallet', () => {
+    it('should return wallet information wrapped in CommonResponseDto', async () => {
+      const mockWallet = {
+        privateKey: '0xprivatekey123',
+        publicKey: '0xpublickey123',
+        address: '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
+        balance: '0',
+        nonce: 0,
+      };
+      service.createWallet.mockResolvedValue(mockWallet);
+
+      const result = await controller.createWallet();
+
+      expect(result).toBeInstanceOf(CommonResponseDto);
+      expect(result.data).toEqual(mockWallet);
+      expect(result.message).toBe('지갑 생성 성공');
+      expect(service.createWallet).toHaveBeenCalled();
     });
   });
 });

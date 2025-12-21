@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import {
   ApiExtraModels,
   ApiOperation,
@@ -220,5 +220,45 @@ export class AccountsController {
     );
 
     return CommonResponseDto.success(result, '토큰 전송 내역 조회 성공');
+  }
+
+  @Post('create-wallet')
+  @ApiOperation({
+    summary: '새 지갑 생성',
+    description:
+      '새로운 지갑을 생성합니다. 개인키, 공개키, 주소를 반환합니다. (주의: 실제 프로덕션에서는 클라이언트에서 생성해야 합니다)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: '지갑이 성공적으로 생성됨',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: {
+              type: 'object',
+              properties: {
+                privateKey: { type: 'string', example: '0x...' },
+                publicKey: { type: 'string', example: '0x...' },
+                address: { type: 'string', example: '0x...' },
+                balance: { type: 'string', example: '0' },
+                nonce: { type: 'number', example: 0 },
+              },
+            },
+          },
+        },
+      ],
+    },
+  })
+  async createWallet(): Promise<CommonResponseDto<{
+    privateKey: string;
+    publicKey: string;
+    address: string;
+    balance: string;
+    nonce: number;
+  }>> {
+    const wallet = await this.accountsService.createWallet();
+    return CommonResponseDto.success(wallet, '지갑 생성 성공');
   }
 }
