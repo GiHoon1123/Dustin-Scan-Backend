@@ -90,7 +90,7 @@ export class AccountsService {
         symbol: token?.symbol ?? null,
         decimals: token?.decimals ?? null,
         balance: tokenToDecimal(balanceWei, tokenDecimals), // 토큰 단위
-        balanceWei, // 원본 (토큰 최소 단위)
+        balanceSmallestUnit: balanceWei, // 원본 (토큰 최소 단위)
       };
 
       items.push(dto);
@@ -156,7 +156,7 @@ export class AccountsService {
         from: t.from,
         to: t.to,
         value: tokenToDecimal(valueWei, tokenDecimals), // 토큰 단위
-        valueWei, // 원본 (토큰 최소 단위)
+        valueSmallestUnit: valueWei, // 원본 (토큰 최소 단위)
         blockNumber: t.blockNumber,
         transactionHash: t.transactionHash,
         logIndex: t.logIndex,

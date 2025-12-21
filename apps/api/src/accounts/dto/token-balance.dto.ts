@@ -38,7 +38,7 @@ export class TokenBalanceDto {
     description: '잔액 (토큰 최소 단위, 원본 데이터)',
     example: '123000000000000000000',
   })
-  balanceWei: string; // 토큰 최소 단위 (Wei와 유사)
+  balanceSmallestUnit: string; // 토큰 최소 단위 (decimals 기반)
 }
 
 

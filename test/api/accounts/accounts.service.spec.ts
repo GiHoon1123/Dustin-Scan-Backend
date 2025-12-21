@@ -141,7 +141,7 @@ describe('AccountsService', () => {
       expect(result.items).toHaveLength(1);
       expect(result.items[0].tokenAddress).toBe('0xtoken1');
       expect(result.items[0].balance).toBe('1000.0'); // 토큰 단위
-      expect(result.items[0].balanceWei).toBe('1000000000000000000000'); // 원본
+      expect(result.items[0].balanceSmallestUnit).toBe('1000000000000000000000'); // 원본
       expect(result.items[0].symbol).toBe('DSTN');
     });
   });

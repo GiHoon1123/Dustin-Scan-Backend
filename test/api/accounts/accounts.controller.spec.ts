@@ -62,7 +62,7 @@ describe('AccountsController', () => {
           symbol: 'DSTN',
           decimals: 18,
           balance: '1000.0',
-          balanceWei: '1000000000000000000000',
+          balanceSmallestUnit: '1000000000000000000000',
         },
       ];
       service.getTokenBalances.mockResolvedValue({ items });
@@ -84,7 +84,7 @@ describe('AccountsController', () => {
           from: '0xfrom',
           to: '0x123',
           value: '10.0',
-          valueWei: '10000000000000000000',
+          valueSmallestUnit: '10000000000000000000',
           blockNumber: '1',
           transactionHash: '0xtx',
           logIndex: 0,

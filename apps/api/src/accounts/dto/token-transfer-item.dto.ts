@@ -29,7 +29,7 @@ export class TokenTransferItemDto {
     description: '전송 값 (토큰 최소 단위, 원본 데이터)',
     example: '1000000000000000000',
   })
-  valueWei: string; // 토큰 최소 단위 (Wei와 유사)
+  valueSmallestUnit: string; // 토큰 최소 단위 (decimals 기반)
 
   @ApiProperty({
     description: '블록 번호 (decimal string)',
