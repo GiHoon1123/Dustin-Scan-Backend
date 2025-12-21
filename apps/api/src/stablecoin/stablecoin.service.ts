@@ -1,5 +1,5 @@
 import { ChainClientService } from '@app/chain-client';
-import { hexToBoolean, hexToDecimalString, weiToDstn } from '@app/common';
+import { dstnToWei, hexToBoolean, hexToDecimalString, weiToDstn } from '@app/common';
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
@@ -36,14 +36,19 @@ export class StablecoinService {
    * 담보 예치
    *
    * POST /stablecoin/deposit
+   * 프론트에서 10진수 DSTN 문자열을 받아서 16진수 Wei로 변환
    */
   async depositCollateral(
     privateKey: string,
     amount: string,
   ): Promise<{ hash: string; status: string }> {
+    // 10진수 DSTN → Wei (10진수 문자열) → 16진수 문자열
+    const amountWei = dstnToWei(amount);
+    const amountHex = '0x' + BigInt(amountWei).toString(16);
+
     const response = await this.client.post('/stablecoin/deposit', {
       privateKey,
-      amount,
+      amount: amountHex,
     });
     return response.data;
   }
@@ -52,14 +57,19 @@ export class StablecoinService {
    * 스테이블코인 발행
    *
    * POST /stablecoin/mint
+   * 프론트에서 10진수 DSTN 문자열을 받아서 16진수 Wei로 변환
    */
   async mintStablecoin(
     privateKey: string,
     stablecoinAmount: string,
   ): Promise<{ hash: string; status: string }> {
+    // 10진수 DSTN → Wei (10진수 문자열) → 16진수 문자열
+    const amountWei = dstnToWei(stablecoinAmount);
+    const amountHex = '0x' + BigInt(amountWei).toString(16);
+
     const response = await this.client.post('/stablecoin/mint', {
       privateKey,
-      stablecoinAmount,
+      stablecoinAmount: amountHex,
     });
     return response.data;
   }
@@ -68,14 +78,19 @@ export class StablecoinService {
    * 스테이블코인 상환
    *
    * POST /stablecoin/redeem
+   * 프론트에서 10진수 DSTN 문자열을 받아서 16진수 Wei로 변환
    */
   async redeemStablecoin(
     privateKey: string,
     stablecoinAmount: string,
   ): Promise<{ hash: string; status: string }> {
+    // 10진수 DSTN → Wei (10진수 문자열) → 16진수 문자열
+    const amountWei = dstnToWei(stablecoinAmount);
+    const amountHex = '0x' + BigInt(amountWei).toString(16);
+
     const response = await this.client.post('/stablecoin/redeem', {
       privateKey,
-      stablecoinAmount,
+      stablecoinAmount: amountHex,
     });
     return response.data;
   }
@@ -84,14 +99,19 @@ export class StablecoinService {
    * 담보 인출
    *
    * POST /stablecoin/withdraw
+   * 프론트에서 10진수 DSTN 문자열을 받아서 16진수 Wei로 변환
    */
   async withdrawCollateral(
     privateKey: string,
     amount: string,
   ): Promise<{ hash: string; status: string }> {
+    // 10진수 DSTN → Wei (10진수 문자열) → 16진수 문자열
+    const amountWei = dstnToWei(amount);
+    const amountHex = '0x' + BigInt(amountWei).toString(16);
+
     const response = await this.client.post('/stablecoin/withdraw', {
       privateKey,
-      amount,
+      amount: amountHex,
     });
     return response.data;
   }

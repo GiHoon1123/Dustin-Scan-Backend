@@ -56,7 +56,7 @@ describe('StablecoinService', () => {
   });
 
   describe('depositCollateral', () => {
-    it('should call core API and return transaction hash', async () => {
+    it('should convert DSTN to hex Wei and call core API', async () => {
       const mockResponse = {
         data: {
           hash: '0xtxhash123',
@@ -66,11 +66,13 @@ describe('StablecoinService', () => {
 
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
-      const result = await service.depositCollateral('0xprivatekey', '1000000000000000000');
+      // 프론트에서 10진수 DSTN 문자열로 받음 (예: "1")
+      const result = await service.depositCollateral('0xprivatekey', '1');
 
+      // 코어에는 16진수 Wei로 변환되어 전달됨
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/deposit', {
         privateKey: '0xprivatekey',
-        amount: '1000000000000000000',
+        amount: '0xde0b6b3a7640000', // 1 DSTN = 1000000000000000000 Wei = 0xde0b6b3a7640000
       });
       expect(result).toEqual({
         hash: '0xtxhash123',
@@ -80,7 +82,7 @@ describe('StablecoinService', () => {
   });
 
   describe('mintStablecoin', () => {
-    it('should call core API and return transaction hash', async () => {
+    it('should convert DSTN to hex Wei and call core API', async () => {
       const mockResponse = {
         data: {
           hash: '0xtxhash456',
@@ -90,11 +92,13 @@ describe('StablecoinService', () => {
 
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
-      const result = await service.mintStablecoin('0xprivatekey', '500000000000000000000');
+      // 프론트에서 10진수 DSTN 문자열로 받음 (예: "500")
+      const result = await service.mintStablecoin('0xprivatekey', '500');
 
+      // 코어에는 16진수 Wei로 변환되어 전달됨
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/mint', {
         privateKey: '0xprivatekey',
-        stablecoinAmount: '500000000000000000000',
+        stablecoinAmount: '0x1b1ae4d6e2ef500000', // 500 DSTN = 500000000000000000000 Wei = 0x1b1ae4d6e2ef500000
       });
       expect(result).toEqual({
         hash: '0xtxhash456',
@@ -104,7 +108,7 @@ describe('StablecoinService', () => {
   });
 
   describe('redeemStablecoin', () => {
-    it('should call core API and return transaction hash', async () => {
+    it('should convert DSTN to hex Wei and call core API', async () => {
       const mockResponse = {
         data: {
           hash: '0xtxhash789',
@@ -114,11 +118,13 @@ describe('StablecoinService', () => {
 
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
-      const result = await service.redeemStablecoin('0xprivatekey', '200000000000000000000');
+      // 프론트에서 10진수 DSTN 문자열로 받음 (예: "200")
+      const result = await service.redeemStablecoin('0xprivatekey', '200');
 
+      // 코어에는 16진수 Wei로 변환되어 전달됨
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/redeem', {
         privateKey: '0xprivatekey',
-        stablecoinAmount: '200000000000000000000',
+        stablecoinAmount: '0xad78ebc5ac6200000', // 200 DSTN = 200000000000000000000 Wei = 0xad78ebc5ac6200000
       });
       expect(result).toEqual({
         hash: '0xtxhash789',
@@ -128,7 +134,7 @@ describe('StablecoinService', () => {
   });
 
   describe('withdrawCollateral', () => {
-    it('should call core API and return transaction hash', async () => {
+    it('should convert DSTN to hex Wei and call core API', async () => {
       const mockResponse = {
         data: {
           hash: '0xtxhashabc',
@@ -138,11 +144,13 @@ describe('StablecoinService', () => {
 
       mockAxiosInstance.post.mockResolvedValue(mockResponse);
 
-      const result = await service.withdrawCollateral('0xprivatekey', '500000000000000000');
+      // 프론트에서 10진수 DSTN 문자열로 받음 (예: "0.5")
+      const result = await service.withdrawCollateral('0xprivatekey', '0.5');
 
+      // 코어에는 16진수 Wei로 변환되어 전달됨
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/stablecoin/withdraw', {
         privateKey: '0xprivatekey',
-        amount: '500000000000000000',
+        amount: '0x6f05b59d3b20000', // 0.5 DSTN = 500000000000000000 Wei = 0x6f05b59d3b20000
       });
       expect(result).toEqual({
         hash: '0xtxhashabc',
