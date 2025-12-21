@@ -1,9 +1,5 @@
 import { ChainClientService } from '@app/chain-client';
-import {
-  decodeMultipleUint256,
-  hexToBoolean,
-  hexToDecimalString,
-} from '@app/common';
+import { hexToBoolean, hexToDecimalString, weiToDstn } from '@app/common';
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
@@ -123,7 +119,9 @@ export class StablecoinService {
    */
   async getPosition(userAddress: string): Promise<{
     collateralAmount: string;
+    collateralAmountWei: string;
     debtAmount: string;
+    debtAmountWei: string;
     collateralRatio: string;
   }> {
     const response = await this.client.get(`/stablecoin/position/${userAddress}`);
@@ -138,11 +136,18 @@ export class StablecoinService {
       return hexToDecimalString(hex);
     };
 
-    // 코어 수정: * 100을 제거하고 비율(배수)만 반환하므로 그대로 디코딩
+    // Wei 단위로 디코딩
+    const collateralAmountWei = decodeHex(data.collateralAmount);
+    const debtAmountWei = decodeHex(data.debtAmount);
+    const collateralRatio = decodeHex(data.collateralRatio);
+
+    // DSTN 단위로 변환 (Accounts, Transactions API와 동일한 방식)
     return {
-      collateralAmount: decodeHex(data.collateralAmount),
-      debtAmount: decodeHex(data.debtAmount),
-      collateralRatio: decodeHex(data.collateralRatio),
+      collateralAmount: weiToDstn(collateralAmountWei),
+      collateralAmountWei,
+      debtAmount: weiToDstn(debtAmountWei),
+      debtAmountWei,
+      collateralRatio,
     };
   }
 
@@ -161,4 +166,3 @@ export class StablecoinService {
     };
   }
 }
-

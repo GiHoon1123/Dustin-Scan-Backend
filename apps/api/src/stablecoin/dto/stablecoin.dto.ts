@@ -158,16 +158,28 @@ export class TransactionResponseDto {
  */
 export class PositionResponseDto {
   @ApiProperty({
-    description: '담보 양 (Wei 단위, decimal string)',
-    example: '1000000000000000000000',
+    description: '담보 양 (DSTN 단위, 사용자 친화적)',
+    example: '1000.0',
   })
-  collateralAmount: string;
+  collateralAmount: string; // DSTN 단위
 
   @ApiProperty({
-    description: '부채 양 (Wei 단위, decimal string)',
+    description: '담보 양 (Wei 단위, 원본 데이터)',
+    example: '1000000000000000000000',
+  })
+  collateralAmountWei: string; // Wei 단위
+
+  @ApiProperty({
+    description: '부채 양 (DSTN 단위, 사용자 친화적)',
+    example: '500.0',
+  })
+  debtAmount: string; // DSTN 단위
+
+  @ApiProperty({
+    description: '부채 양 (Wei 단위, 원본 데이터)',
     example: '500000000000000000000',
   })
-  debtAmount: string;
+  debtAmountWei: string; // Wei 단위
 
   @ApiProperty({
     description: '담보비율 (배수, decimal string). 코어에서 비율만 반환 (예: 1243 = 1,243배 = 124,300%)',

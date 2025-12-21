@@ -139,8 +139,10 @@ describe('StablecoinController', () => {
   describe('getPosition', () => {
     it('should call service and return decoded position', async () => {
       const mockPosition = {
-        collateralAmount: '1000000000000000000',
-        debtAmount: '500000000000000000',
+        collateralAmount: '1.0',
+        collateralAmountWei: '1000000000000000000',
+        debtAmount: '0.5',
+        debtAmountWei: '500000000000000000',
         collateralRatio: '2000000000000000000',
       };
       service.getPosition.mockResolvedValue(mockPosition);

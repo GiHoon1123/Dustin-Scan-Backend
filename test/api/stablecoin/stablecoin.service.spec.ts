@@ -179,7 +179,7 @@ describe('StablecoinService', () => {
   });
 
   describe('getPosition', () => {
-    it('should decode position data from core API response', async () => {
+    it('should decode position data and convert to DSTN (both DSTN and Wei)', async () => {
       const mockResponse = {
         data: {
           collateralAmount: '0xde0b6b3a7640000', // 1 DSTN in wei
@@ -196,9 +196,13 @@ describe('StablecoinService', () => {
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         '/stablecoin/position/0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
       );
-      expect(result.collateralAmount).toBe('1000000000000000000');
-      expect(result.debtAmount).toBe('500000000000000000');
-      // 코어에서 비율만 반환하므로 그대로 디코딩
+      // DSTN 단위
+      expect(result.collateralAmount).toBe('1.0');
+      expect(result.debtAmount).toBe('0.5');
+      // Wei 단위
+      expect(result.collateralAmountWei).toBe('1000000000000000000');
+      expect(result.debtAmountWei).toBe('500000000000000000');
+      // 비율
       expect(result.collateralRatio).toBe('200');
     });
 
@@ -216,7 +220,7 @@ describe('StablecoinService', () => {
 
       const result = await service.getPosition('0x742d35cc6634c0532925a3b844bc9e7595f0beb0');
 
-      // 코어에서 비율만 반환하므로 그대로 디코딩
+      // 비율은 그대로 디코딩
       expect(result.collateralRatio).toBe('1243');
     });
 
@@ -233,8 +237,10 @@ describe('StablecoinService', () => {
 
       const result = await service.getPosition('0x742d35cc6634c0532925a3b844bc9e7595f0beb0');
 
-      expect(result.collateralAmount).toBe('0');
-      expect(result.debtAmount).toBe('0');
+      expect(result.collateralAmount).toBe('0.0');
+      expect(result.collateralAmountWei).toBe('0');
+      expect(result.debtAmount).toBe('0.0');
+      expect(result.debtAmountWei).toBe('0');
       expect(result.collateralRatio).toBe('0');
     });
   });
