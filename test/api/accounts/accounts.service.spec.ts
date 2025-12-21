@@ -121,9 +121,9 @@ describe('AccountsService', () => {
   });
 
   describe('getTokenBalances', () => {
-    it('should return token balances with metadata', async () => {
+    it('should return token balances with metadata (both token unit and Wei)', async () => {
       tokenTransferRepo.getTokenBalancesByAddress.mockResolvedValue([
-        { tokenAddress: '0xToken1', balance: '1000' },
+        { tokenAddress: '0xToken1', balance: '1000000000000000000000' }, // 1000 DSTN (18 decimals)
       ]);
       tokenRepo.findByAddress.mockResolvedValue({
         address: '0xtoken1',
@@ -140,7 +140,8 @@ describe('AccountsService', () => {
       expect(tokenTransferRepo.getTokenBalancesByAddress).toHaveBeenCalledWith('0xabc', 1, 20);
       expect(result.items).toHaveLength(1);
       expect(result.items[0].tokenAddress).toBe('0xtoken1');
-      expect(result.items[0].balance).toBe('1000');
+      expect(result.items[0].balance).toBe('1000.0'); // 토큰 단위
+      expect(result.items[0].balanceWei).toBe('1000000000000000000000'); // 원본
       expect(result.items[0].symbol).toBe('DSTN');
     });
   });

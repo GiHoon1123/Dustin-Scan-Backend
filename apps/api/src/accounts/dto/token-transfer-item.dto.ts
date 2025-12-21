@@ -20,10 +20,16 @@ export class TokenTransferItemDto {
   to: string;
 
   @ApiProperty({
-    description: '전송 값 (정수 문자열)',
+    description: '전송 값 (토큰 단위, 사용자 친화적)',
+    example: '1.0',
+  })
+  value: string; // 토큰 단위
+
+  @ApiProperty({
+    description: '전송 값 (토큰 최소 단위, 원본 데이터)',
     example: '1000000000000000000',
   })
-  value: string;
+  valueWei: string; // 토큰 최소 단위 (Wei와 유사)
 
   @ApiProperty({
     description: '블록 번호 (decimal string)',

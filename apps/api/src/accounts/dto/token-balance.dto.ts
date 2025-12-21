@@ -29,10 +29,16 @@ export class TokenBalanceDto {
   decimals: number | null;
 
   @ApiProperty({
-    description: '잔액 (정수 문자열, Wei 또는 토큰 최소 단위)',
+    description: '잔액 (토큰 단위, 사용자 친화적)',
+    example: '123.0',
+  })
+  balance: string; // 토큰 단위
+
+  @ApiProperty({
+    description: '잔액 (토큰 최소 단위, 원본 데이터)',
     example: '123000000000000000000',
   })
-  balance: string;
+  balanceWei: string; // 토큰 최소 단위 (Wei와 유사)
 }
 
 

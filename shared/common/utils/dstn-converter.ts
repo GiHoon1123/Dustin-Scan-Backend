@@ -95,3 +95,49 @@ export function dstnToWei(dstn: number | string): string {
 export function formatDstn(wei: string | bigint, decimals: number = 4): string {
   return `${weiToDstn(wei, decimals)} DSTN`;
 }
+
+/**
+ * 토큰 단위 변환 (Wei → 토큰 단위)
+ *
+ * 토큰의 decimals를 사용하여 변환합니다.
+ *
+ * 사용 예시:
+ * - tokenToDecimal("1000000000000000000", 18) // "1.0"
+ * - tokenToDecimal("1000000", 6) // "1.0"
+ * - tokenToDecimal("1234567890000000000", 18) // "1.23456789"
+ *
+ * @param amount - 토큰 최소 단위 금액 (string 또는 bigint)
+ * @param tokenDecimals - 토큰의 decimals (기본값: 18)
+ * @param displayDecimals - 표시할 소수점 자리수 (기본값: 4)
+ * @returns 토큰 단위의 문자열
+ */
+export function tokenToDecimal(
+  amount: string | bigint,
+  tokenDecimals: number = 18,
+  displayDecimals: number = 4,
+): string {
+  const amountBigInt = typeof amount === 'string' ? BigInt(amount) : amount;
+  const divisor = BigInt(10 ** tokenDecimals);
+
+  // 정수 부분
+  const integerPart = amountBigInt / divisor;
+
+  // 소수 부분
+  const remainder = amountBigInt % divisor;
+
+  if (remainder === 0n) {
+    return integerPart.toString() + '.0';
+  }
+
+  // 소수점 처리 (tokenDecimals 자리 패딩)
+  const decimalStr = remainder.toString().padStart(tokenDecimals, '0');
+
+  // 지정된 자리수만큼만 표시하고 trailing zeros 제거
+  const trimmedDecimal = decimalStr.slice(0, displayDecimals).replace(/0+$/, '');
+
+  if (trimmedDecimal === '') {
+    return integerPart.toString() + '.0';
+  }
+
+  return `${integerPart}.${trimmedDecimal}`;
+}

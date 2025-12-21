@@ -1,5 +1,5 @@
 import { ChainClientService } from '@app/chain-client';
-import { hexToDecimal, weiToDstn } from '@app/common';
+import { hexToDecimal, tokenToDecimal, weiToDstn } from '@app/common';
 import { Token, TokenRepository, TokenTransfer, TokenTransferRepository, TransactionRepository } from '@app/database';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
@@ -81,12 +81,16 @@ export class AccountsService {
       const tokenAddress = row.tokenAddress.toLowerCase();
       const token = await this.tokenRepo.findByAddress(tokenAddress);
 
+      const tokenDecimals = token?.decimals ?? 18;
+      const balanceWei = row.balance;
+
       const dto: TokenBalanceDto = {
         tokenAddress,
         name: token?.name ?? null,
         symbol: token?.symbol ?? null,
         decimals: token?.decimals ?? null,
-        balance: row.balance,
+        balance: tokenToDecimal(balanceWei, tokenDecimals), // 토큰 단위
+        balanceWei, // 원본 (토큰 최소 단위)
       };
 
       items.push(dto);
@@ -124,6 +128,15 @@ export class AccountsService {
       );
     }
 
+    // 토큰 정보 일괄 조회 (성능 최적화)
+    const tokenAddresses = [...new Set(transfers.map((t) => t.tokenAddress))];
+    const tokens = await Promise.all(
+      tokenAddresses.map((addr) => this.tokenRepo.findByAddress(addr)),
+    );
+    const tokenMap = new Map(
+      tokens.map((token, idx) => [tokenAddresses[idx]?.toLowerCase(), token]),
+    );
+
     const items: TokenTransferItemDto[] = transfers.map((t) => {
       let direction: 'in' | 'out' | 'self';
       if (t.from === normalizedAddress && t.to === normalizedAddress) {
@@ -134,11 +147,16 @@ export class AccountsService {
         direction = 'out';
       }
 
+      const token = tokenMap.get(t.tokenAddress.toLowerCase());
+      const tokenDecimals = token?.decimals ?? 18;
+      const valueWei = t.value;
+
       return {
         tokenAddress: t.tokenAddress,
         from: t.from,
         to: t.to,
-        value: t.value,
+        value: tokenToDecimal(valueWei, tokenDecimals), // 토큰 단위
+        valueWei, // 원본 (토큰 최소 단위)
         blockNumber: t.blockNumber,
         transactionHash: t.transactionHash,
         logIndex: t.logIndex,
