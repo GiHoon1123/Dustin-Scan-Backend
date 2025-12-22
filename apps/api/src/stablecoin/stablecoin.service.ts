@@ -1,5 +1,11 @@
 import { ChainClientService } from '@app/chain-client';
-import { dstnToWei, hexToBoolean, hexToDecimalString, weiToDstn } from '@app/common';
+import {
+  dstnToWei,
+  hexToBoolean,
+  hexToDecimalString,
+  tokenToDecimal,
+  weiToDstn,
+} from '@app/common';
 import { Injectable, Logger } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
 
@@ -183,6 +189,39 @@ export class StablecoinService {
     // hex string을 boolean으로 디코딩
     return {
       isHealthy: hexToBoolean(data.result),
+    };
+  }
+
+  /**
+   * 스테이블코인 잔액 조회 (디코딩 포함)
+   *
+   * GET /stablecoin/balance/:userAddress
+   * 코어에서 받은 balance (hex string, Wei 단위)를 디코딩하여
+   * 토큰 단위와 smallest unit 둘 다 제공
+   */
+  async getStablecoinBalance(userAddress: string): Promise<{
+    balance: string; // 토큰 단위 (USDST, 사용자 친화적)
+    balanceSmallestUnit: string; // smallest unit (원본, 10진수 문자열)
+  }> {
+    const response = await this.client.get(`/stablecoin/balance/${userAddress}`);
+    const data = response.data;
+
+    // 빈 hex string 처리
+    const decodeHex = (hex: string): string => {
+      if (!hex || hex === '0x' || hex === '0x0') {
+        return '0';
+      }
+      return hexToDecimalString(hex);
+    };
+
+    // smallest unit로 디코딩 (스테이블코인은 18 decimals)
+    const balanceSmallestUnit = decodeHex(data.balance);
+    const tokenDecimals = 18; // USDST는 18 decimals
+    const balance = tokenToDecimal(balanceSmallestUnit, tokenDecimals);
+
+    return {
+      balance, // 토큰 단위
+      balanceSmallestUnit, // 원본
     };
   }
 

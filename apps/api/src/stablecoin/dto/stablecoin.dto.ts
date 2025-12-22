@@ -276,6 +276,23 @@ export class TransferStablecoinRequestDto {
 }
 
 /**
+ * 스테이블코인 잔액 응답 DTO
+ */
+export class StablecoinBalanceResponseDto {
+  @ApiProperty({
+    description: '스테이블코인 잔액 (토큰 단위, 사용자 친화적)',
+    example: '100.0',
+  })
+  balance: string;
+
+  @ApiProperty({
+    description: '스테이블코인 잔액 (smallest unit, 원본)',
+    example: '100000000000000000000',
+  })
+  balanceSmallestUnit: string;
+}
+
+/**
  * 트랜잭션 결과 응답 DTO (반영 확인 포함)
  */
 export class TransactionResultResponseDto {

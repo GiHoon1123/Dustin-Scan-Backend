@@ -16,6 +16,7 @@ import {
   MintStablecoinRequestDto,
   PositionResponseDto,
   RedeemStablecoinRequestDto,
+  StablecoinBalanceResponseDto,
   TransactionResponseDto,
   TransactionResultResponseDto,
   TransferStablecoinRequestDto,
@@ -35,6 +36,7 @@ import {
   TransactionResponseDto,
   PositionResponseDto,
   HealthResponseDto,
+  StablecoinBalanceResponseDto,
 )
 @Controller('stablecoin')
 export class StablecoinController {
@@ -208,8 +210,45 @@ export class StablecoinController {
   })
   async getHealth(
     @Param('userAddress') userAddress: string,
-  ): Promise<HealthResponseDto> {
-    return await this.stablecoinService.getHealth(userAddress);
+  ): Promise<CommonResponseDto<HealthResponseDto>> {
+    const result = await this.stablecoinService.getHealth(userAddress);
+    return CommonResponseDto.success(result, '헬스체크 확인 성공');
+  }
+
+  /**
+   * 스테이블코인 잔액 조회
+   *
+   * GET /stablecoin/balance/:userAddress
+   */
+  @Get('balance/:userAddress')
+  @ApiOperation({
+    summary: '스테이블코인 잔액 조회',
+    description: '사용자의 스테이블코인(USDST) 잔액을 조회합니다. (디코딩된 값)',
+  })
+  @ApiParam({
+    name: 'userAddress',
+    description: '사용자 주소',
+    example: '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '스테이블코인 잔액 조회 성공',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: { $ref: getSchemaPath(StablecoinBalanceResponseDto) },
+          },
+        },
+      ],
+    },
+  })
+  async getStablecoinBalance(
+    @Param('userAddress') userAddress: string,
+  ): Promise<CommonResponseDto<StablecoinBalanceResponseDto>> {
+    const result = await this.stablecoinService.getStablecoinBalance(userAddress);
+    return CommonResponseDto.success(result, '스테이블코인 잔액 조회 성공');
   }
 
   /**

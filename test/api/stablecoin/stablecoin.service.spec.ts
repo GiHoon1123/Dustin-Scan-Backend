@@ -286,6 +286,41 @@ describe('StablecoinService', () => {
     });
   });
 
+  describe('getStablecoinBalance', () => {
+    it('should decode balance from hex Wei to token unit and return both units', async () => {
+      const mockResponse = {
+        data: {
+          balance: '0x56bc75e2d63100000', // 100 USDST in Wei (hex)
+        },
+      };
+
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
+
+      const result = await service.getStablecoinBalance('0x742d35cc6634c0532925a3b844bc9e7595f0beb0');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        '/stablecoin/balance/0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
+      );
+      expect(result.balance).toBe('100.0'); // 토큰 단위
+      expect(result.balanceSmallestUnit).toBe('100000000000000000000'); // smallest unit (10진수)
+    });
+
+    it('should handle zero balance', async () => {
+      const mockResponse = {
+        data: {
+          balance: '0x0', // 0 Wei
+        },
+      };
+
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
+
+      const result = await service.getStablecoinBalance('0x742d35cc6634c0532925a3b844bc9e7595f0beb0');
+
+      expect(result.balance).toBe('0.0'); // 토큰 단위
+      expect(result.balanceSmallestUnit).toBe('0'); // smallest unit
+    });
+  });
+
   describe('transferStablecoin', () => {
     it('should convert DSTN to hex Wei, call core API, and wait for confirmation', async () => {
       const mockTxResponse = {

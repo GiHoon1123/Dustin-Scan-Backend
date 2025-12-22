@@ -17,6 +17,7 @@ describe('StablecoinController', () => {
       liquidate: jest.fn(),
       getPosition: jest.fn(),
       getHealth: jest.fn(),
+      getStablecoinBalance: jest.fn(),
       transferStablecoin: jest.fn(),
     };
 
@@ -160,7 +161,7 @@ describe('StablecoinController', () => {
   });
 
   describe('getHealth', () => {
-    it('should call service and return decoded health status', async () => {
+    it('should call service and return decoded health status wrapped in CommonResponseDto', async () => {
       const mockHealth = {
         isHealthy: true,
       };
@@ -171,7 +172,28 @@ describe('StablecoinController', () => {
       expect(service.getHealth).toHaveBeenCalledWith(
         '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
       );
-      expect(result).toEqual(mockHealth);
+      expect(result).toBeInstanceOf(CommonResponseDto);
+      expect(result.data).toEqual(mockHealth);
+      expect(result.message).toBe('헬스체크 확인 성공');
+    });
+  });
+
+  describe('getStablecoinBalance', () => {
+    it('should return balance wrapped in CommonResponseDto', async () => {
+      const mockBalance = {
+        balance: '100.0',
+        balanceSmallestUnit: '100000000000000000000',
+      };
+      service.getStablecoinBalance.mockResolvedValue(mockBalance);
+
+      const result = await controller.getStablecoinBalance('0x742d35cc6634c0532925a3b844bc9e7595f0beb0');
+
+      expect(result).toBeInstanceOf(CommonResponseDto);
+      expect(result.data).toEqual(mockBalance);
+      expect(result.message).toBe('스테이블코인 잔액 조회 성공');
+      expect(service.getStablecoinBalance).toHaveBeenCalledWith(
+        '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
+      );
     });
   });
 
