@@ -207,12 +207,12 @@ describe('AccountsService', () => {
   });
 
   describe('createWallet', () => {
-    it('should call core API and return wallet information', async () => {
+    it('should decode balance from hex Wei to DSTN and return both units', async () => {
       const mockWallet = {
         privateKey: '0xprivatekey123',
         publicKey: '0xpublickey123',
         address: '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
-        balance: '0',
+        balance: '0x21e19e0c9bab2400000', // 10000 DSTN in Wei (hex)
         nonce: 0,
       };
 
@@ -221,7 +221,29 @@ describe('AccountsService', () => {
       const result = await service.createWallet();
 
       expect(mockAxiosInstance.post).toHaveBeenCalledWith('/account/create-wallet');
-      expect(result).toEqual(mockWallet);
+      expect(result.privateKey).toBe('0xprivatekey123');
+      expect(result.publicKey).toBe('0xpublickey123');
+      expect(result.address).toBe('0x742d35cc6634c0532925a3b844bc9e7595f0beb0');
+      expect(result.balance).toBe('10000.0'); // DSTN 단위
+      expect(result.balanceWei).toBe('10000000000000000000000'); // Wei 단위 (10진수)
+      expect(result.nonce).toBe(0);
+    });
+
+    it('should handle zero balance', async () => {
+      const mockWallet = {
+        privateKey: '0xprivatekey123',
+        publicKey: '0xpublickey123',
+        address: '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
+        balance: '0x0', // 0 Wei
+        nonce: 0,
+      };
+
+      mockAxiosInstance.post.mockResolvedValue({ data: mockWallet });
+
+      const result = await service.createWallet();
+
+      expect(result.balance).toBe('0.0'); // DSTN 단위
+      expect(result.balanceWei).toBe('0'); // Wei 단위
     });
   });
 

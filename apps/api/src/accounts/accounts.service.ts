@@ -1,5 +1,5 @@
 import { ChainClientService } from '@app/chain-client';
-import { dstnToWei, hexToDecimal, tokenToDecimal, weiToDstn } from '@app/common';
+import { dstnToWei, hexToDecimal, hexToDecimalString, tokenToDecimal, weiToDstn } from '@app/common';
 import { Token, TokenRepository, TokenTransfer, TokenTransferRepository, TransactionRepository } from '@app/database';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
@@ -172,16 +172,32 @@ export class AccountsService {
    * 새 지갑 생성
    *
    * POST /account/create-wallet
+   * 코어에서 받은 balance (hex string, Wei 단위)를 디코딩하여
+   * DSTN 단위와 Wei 단위 둘 다 제공
    */
   async createWallet(): Promise<{
     privateKey: string;
     publicKey: string;
     address: string;
-    balance: string;
+    balance: string; // DSTN 단위 (사용자 친화적)
+    balanceWei: string; // Wei 단위 (원본)
     nonce: number;
   }> {
     const response = await this.chainHttpClient.post('/account/create-wallet');
-    return response.data;
+    const data = response.data;
+
+    // balance는 hex string (Wei 단위)이므로 디코딩
+    const balanceWei = hexToDecimalString(data.balance);
+    const balance = weiToDstn(balanceWei);
+
+    return {
+      privateKey: data.privateKey,
+      publicKey: data.publicKey,
+      address: data.address,
+      balance, // DSTN 단위
+      balanceWei, // Wei 단위
+      nonce: data.nonce,
+    };
   }
 
   /**

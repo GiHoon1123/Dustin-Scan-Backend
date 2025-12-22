@@ -106,12 +106,13 @@ describe('AccountsController', () => {
   });
 
   describe('createWallet', () => {
-    it('should return wallet information wrapped in CommonResponseDto', async () => {
+    it('should return wallet information with decoded balance wrapped in CommonResponseDto', async () => {
       const mockWallet = {
         privateKey: '0xprivatekey123',
         publicKey: '0xpublickey123',
         address: '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
-        balance: '0',
+        balance: '1000.0', // DSTN 단위
+        balanceWei: '1000000000000000000000', // Wei 단위
         nonce: 0,
       };
       service.createWallet.mockResolvedValue(mockWallet);
@@ -120,6 +121,8 @@ describe('AccountsController', () => {
 
       expect(result).toBeInstanceOf(CommonResponseDto);
       expect(result.data).toEqual(mockWallet);
+      expect(result.data.balance).toBe('1000.0'); // DSTN 단위
+      expect(result.data.balanceWei).toBe('1000000000000000000000'); // Wei 단위
       expect(result.message).toBe('지갑 생성 성공');
       expect(service.createWallet).toHaveBeenCalled();
     });

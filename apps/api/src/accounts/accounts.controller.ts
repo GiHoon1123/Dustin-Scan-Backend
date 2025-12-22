@@ -253,7 +253,8 @@ export class AccountsController {
                 privateKey: { type: 'string', example: '0x...' },
                 publicKey: { type: 'string', example: '0x...' },
                 address: { type: 'string', example: '0x...' },
-                balance: { type: 'string', example: '0' },
+                balance: { type: 'string', example: '1000.0', description: 'DSTN 단위 (사용자 친화적)' },
+                balanceWei: { type: 'string', example: '1000000000000000000000', description: 'Wei 단위 (원본)' },
                 nonce: { type: 'number', example: 0 },
               },
             },
@@ -266,7 +267,8 @@ export class AccountsController {
     privateKey: string;
     publicKey: string;
     address: string;
-    balance: string;
+    balance: string; // DSTN 단위
+    balanceWei: string; // Wei 단위
     nonce: number;
   }>> {
     const wallet = await this.accountsService.createWallet();
