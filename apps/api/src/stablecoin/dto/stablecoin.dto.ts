@@ -286,10 +286,10 @@ export class StablecoinBalanceResponseDto {
   balance: string;
 
   @ApiProperty({
-    description: '스테이블코인 잔액 (smallest unit, 원본)',
+    description: '스테이블코인 잔액 (Wei 단위, 원본)',
     example: '100000000000000000000',
   })
-  balanceSmallestUnit: string;
+  balanceWei: string;
 }
 
 /**

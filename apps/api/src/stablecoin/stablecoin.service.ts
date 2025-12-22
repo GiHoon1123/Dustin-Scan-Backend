@@ -201,7 +201,7 @@ export class StablecoinService {
    */
   async getStablecoinBalance(userAddress: string): Promise<{
     balance: string; // 토큰 단위 (USDST, 사용자 친화적)
-    balanceSmallestUnit: string; // smallest unit (원본, 10진수 문자열)
+    balanceWei: string; // Wei 단위 (원본, 10진수 문자열)
   }> {
     const response = await this.client.get(`/stablecoin/balance/${userAddress}`);
     const data = response.data;
@@ -221,7 +221,7 @@ export class StablecoinService {
 
     return {
       balance, // 토큰 단위
-      balanceSmallestUnit, // 원본
+      balanceWei: balanceSmallestUnit, // Wei 단위 (원본)
     };
   }
 
