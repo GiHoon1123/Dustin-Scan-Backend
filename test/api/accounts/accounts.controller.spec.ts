@@ -4,6 +4,7 @@ import { AccountsService } from '../../../apps/api/src/accounts/accounts.service
 import { AccountResponseDto } from '../../../apps/api/src/accounts/dto/account-response.dto';
 import { TokenBalanceDto } from '../../../apps/api/src/accounts/dto/token-balance.dto';
 import { TokenTransferItemDto } from '../../../apps/api/src/accounts/dto/token-transfer-item.dto';
+import { TransactionResultResponseDto } from '../../../apps/api/src/accounts/dto/transfer-native.dto';
 import { CommonResponseDto } from '../../../apps/api/src/common/dto';
 
 describe('AccountsController', () => {
@@ -24,6 +25,7 @@ describe('AccountsController', () => {
       getTokenBalances: jest.fn(),
       getTokenTransfers: jest.fn(),
       createWallet: jest.fn(),
+      transferNative: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -120,6 +122,29 @@ describe('AccountsController', () => {
       expect(result.data).toEqual(mockWallet);
       expect(result.message).toBe('지갑 생성 성공');
       expect(service.createWallet).toHaveBeenCalled();
+    });
+  });
+
+  describe('transferNative', () => {
+    it('should return transaction result wrapped in CommonResponseDto', async () => {
+      const mockResult: TransactionResultResponseDto = {
+        hash: '0xtxhash123',
+        status: 'confirmed',
+        blockNumber: '12345',
+        blockHash: '0xblockhash123',
+      };
+      service.transferNative.mockResolvedValue(mockResult);
+
+      const result = await controller.transferNative({
+        privateKey: '0xprivatekey',
+        to: '0xto',
+        amount: '10',
+      });
+
+      expect(result).toBeInstanceOf(CommonResponseDto);
+      expect(result.data).toEqual(mockResult);
+      expect(result.message).toBe('네이티브 토큰 전송 성공');
+      expect(service.transferNative).toHaveBeenCalledWith('0xprivatekey', '0xto', '10');
     });
   });
 });

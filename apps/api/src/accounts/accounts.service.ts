@@ -1,5 +1,5 @@
 import { ChainClientService } from '@app/chain-client';
-import { hexToDecimal, tokenToDecimal, weiToDstn } from '@app/common';
+import { dstnToWei, hexToDecimal, tokenToDecimal, weiToDstn } from '@app/common';
 import { Token, TokenRepository, TokenTransfer, TokenTransferRepository, TransactionRepository } from '@app/database';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import axios, { AxiosInstance } from 'axios';
@@ -182,6 +182,116 @@ export class AccountsService {
   }> {
     const response = await this.chainHttpClient.post('/account/create-wallet');
     return response.data;
+  }
+
+  /**
+   * 트랜잭션이 블록에 포함될 때까지 대기
+   *
+   * @param txHash - 트랜잭션 해시
+   * @param maxRetries - 최대 재시도 횟수 (기본값: 20)
+   * @param delayMs - 재시도 간격 (기본값: 3000ms)
+   * @returns 트랜잭션 결과 (confirmed/failed/pending)
+   */
+  private async waitForTransaction(
+    txHash: string,
+    maxRetries: number = 20,
+    delayMs: number = 3000,
+  ): Promise<{
+    status: 'confirmed' | 'failed' | 'pending';
+    blockNumber?: string;
+    blockHash?: string;
+  }> {
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const receipt = await this.chainClient.getReceipt(txHash);
+        if (receipt && receipt.blockNumber) {
+          // status 확인 (hex string 또는 number)
+          const status =
+            typeof receipt.status === 'string'
+              ? parseInt(receipt.status, 16)
+              : receipt.status;
+
+          // blockNumber는 hex string이므로 decimal로 변환
+          const blockNumberDecimal =
+            typeof receipt.blockNumber === 'string'
+              ? parseInt(receipt.blockNumber, 16)
+              : receipt.blockNumber;
+
+          if (status === 0) {
+            this.logger.warn(
+              `Transaction ${txHash} failed (status: 0x0) in block ${blockNumberDecimal}`,
+            );
+            return {
+              status: 'failed',
+              blockNumber: blockNumberDecimal.toString(),
+              blockHash: receipt.blockHash,
+            };
+          }
+
+          this.logger.log(
+            `Transaction ${txHash} succeeded (status: 0x1) in block ${blockNumberDecimal}`,
+          );
+          return {
+            status: 'confirmed',
+            blockNumber: blockNumberDecimal.toString(),
+            blockHash: receipt.blockHash,
+          };
+        }
+      } catch (error) {
+        // Receipt가 아직 생성되지 않음 (정상)
+        this.logger.debug(`Receipt not found for ${txHash}, retrying... (${i + 1}/${maxRetries})`);
+      }
+
+      if (i < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+
+    this.logger.warn(
+      `Transaction ${txHash} not included in block after ${maxRetries} retries`,
+    );
+    return {
+      status: 'pending',
+    };
+  }
+
+  /**
+   * 네이티브 토큰(DSTN) 전송
+   *
+   * POST /transaction/send-native
+   * 프론트에서 10진수 DSTN 문자열을 받아서 16진수 Wei로 변환
+   * 트랜잭션이 블록에 반영될 때까지 대기
+   */
+  async transferNative(
+    privateKey: string,
+    to: string,
+    amount: string,
+  ): Promise<{
+    hash: string;
+    status: 'confirmed' | 'failed' | 'pending';
+    blockNumber?: string;
+    blockHash?: string;
+  }> {
+    // 10진수 DSTN → Wei (10진수 문자열) → 16진수 문자열
+    const amountWei = dstnToWei(amount);
+    const amountHex = '0x' + BigInt(amountWei).toString(16);
+
+    // 코어에 전송 요청
+    const response = await this.chainHttpClient.post('/transaction/send-native', {
+      privateKey,
+      to,
+      amount: amountHex,
+    });
+
+    const txHash = response.data.hash;
+
+    // 트랜잭션이 블록에 반영될 때까지 대기
+    const result = await this.waitForTransaction(txHash);
+
+    return {
+      hash: txHash,
+      ...result,
+    };
   }
 
   /**

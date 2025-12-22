@@ -1,10 +1,13 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import {
+  ApiExtraModels,
   ApiOperation,
   ApiParam,
   ApiResponse,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
+import { CommonResponseDto } from '../common/dto';
 import { StablecoinService } from './stablecoin.service';
 import {
   DepositCollateralRequestDto,
@@ -14,6 +17,8 @@ import {
   PositionResponseDto,
   RedeemStablecoinRequestDto,
   TransactionResponseDto,
+  TransactionResultResponseDto,
+  TransferStablecoinRequestDto,
   WithdrawCollateralRequestDto,
 } from './dto/stablecoin.dto';
 
@@ -24,6 +29,13 @@ import {
  * 코어 체인의 API를 프록시하고 응답을 디코딩하여 반환
  */
 @ApiTags('스테이블코인 (Stablecoin)')
+@ApiExtraModels(
+  CommonResponseDto,
+  TransactionResultResponseDto,
+  TransactionResponseDto,
+  PositionResponseDto,
+  HealthResponseDto,
+)
 @Controller('stablecoin')
 export class StablecoinController {
   constructor(private readonly stablecoinService: StablecoinService) {}
@@ -175,14 +187,14 @@ export class StablecoinController {
   }
 
   /**
-   * 건강도 확인
+   * 헬스체크
    *
    * GET /stablecoin/health/:userAddress
    */
   @Get('health/:userAddress')
   @ApiOperation({
-    summary: '건강도 확인',
-    description: '사용자 포지션의 건강도(담보비율 150% 이상)를 확인합니다. (디코딩된 값)',
+    summary: '헬스체크',
+    description: '사용자 포지션의 헬스체크(담보비율 150% 이상)를 확인합니다. (디코딩된 값)',
   })
   @ApiParam({
     name: 'userAddress',
@@ -198,6 +210,41 @@ export class StablecoinController {
     @Param('userAddress') userAddress: string,
   ): Promise<HealthResponseDto> {
     return await this.stablecoinService.getHealth(userAddress);
+  }
+
+  /**
+   * 스테이블코인 전송
+   *
+   * POST /stablecoin/transfer-stablecoin
+   */
+  @Post('transfer-stablecoin')
+  @ApiOperation({
+    summary: '스테이블코인 전송',
+    description: '스테이블코인(USDST)을 다른 주소로 전송합니다. 트랜잭션이 블록에 반영될 때까지 대기합니다.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: '스테이블코인 전송 성공 (트랜잭션 반영 확인 완료)',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: { $ref: getSchemaPath(TransactionResultResponseDto) },
+          },
+        },
+      ],
+    },
+  })
+  async transferStablecoin(
+    @Body() body: TransferStablecoinRequestDto,
+  ): Promise<CommonResponseDto<TransactionResultResponseDto>> {
+    const result = await this.stablecoinService.transferStablecoin(
+      body.privateKey,
+      body.to,
+      body.amount,
+    );
+    return CommonResponseDto.success(result, '스테이블코인 전송 성공');
   }
 }
 

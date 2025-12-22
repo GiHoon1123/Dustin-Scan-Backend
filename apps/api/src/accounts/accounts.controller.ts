@@ -13,9 +13,20 @@ import { AccountsService } from './accounts.service';
 import { AccountResponseDto } from './dto/account-response.dto';
 import { TokenBalanceDto } from './dto/token-balance.dto';
 import { TokenTransferItemDto } from './dto/token-transfer-item.dto';
+import {
+  TransactionResultResponseDto,
+  TransferNativeRequestDto,
+} from './dto/transfer-native.dto';
 
 @ApiTags('계정 (Accounts)')
-@ApiExtraModels(CommonResponseDto, AccountResponseDto, TokenBalanceDto, TokenTransferItemDto)
+@ApiExtraModels(
+  CommonResponseDto,
+  AccountResponseDto,
+  TokenBalanceDto,
+  TokenTransferItemDto,
+  TransferNativeRequestDto,
+  TransactionResultResponseDto,
+)
 @Controller('accounts')
 export class AccountsController {
   constructor(private readonly accountsService: AccountsService) {}
@@ -260,5 +271,35 @@ export class AccountsController {
   }>> {
     const wallet = await this.accountsService.createWallet();
     return CommonResponseDto.success(wallet, '지갑 생성 성공');
+  }
+
+  @Post('transfer-native')
+  @ApiOperation({
+    summary: '네이티브 토큰(DSTN) 전송',
+    description: '네이티브 토큰(DSTN)을 다른 주소로 전송합니다. 트랜잭션이 블록에 반영될 때까지 대기합니다.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: '네이티브 토큰 전송 성공 (트랜잭션 반영 확인 완료)',
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CommonResponseDto) },
+        {
+          properties: {
+            data: { $ref: getSchemaPath(TransactionResultResponseDto) },
+          },
+        },
+      ],
+    },
+  })
+  async transferNative(
+    @Body() body: TransferNativeRequestDto,
+  ): Promise<CommonResponseDto<TransactionResultResponseDto>> {
+    const result = await this.accountsService.transferNative(
+      body.privateKey,
+      body.to,
+      body.amount,
+    );
+    return CommonResponseDto.success(result, '네이티브 토큰 전송 성공');
   }
 }

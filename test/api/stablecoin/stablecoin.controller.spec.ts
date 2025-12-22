@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CommonResponseDto } from '../../../apps/api/src/common/dto';
 import { StablecoinController } from '../../../apps/api/src/stablecoin/stablecoin.controller';
 import { StablecoinService } from '../../../apps/api/src/stablecoin/stablecoin.service';
+import { TransactionResultResponseDto } from '../../../apps/api/src/stablecoin/dto/stablecoin.dto';
 
 describe('StablecoinController', () => {
   let controller: StablecoinController;
@@ -15,6 +17,7 @@ describe('StablecoinController', () => {
       liquidate: jest.fn(),
       getPosition: jest.fn(),
       getHealth: jest.fn(),
+      transferStablecoin: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -169,6 +172,29 @@ describe('StablecoinController', () => {
         '0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
       );
       expect(result).toEqual(mockHealth);
+    });
+  });
+
+  describe('transferStablecoin', () => {
+    it('should return transaction result wrapped in CommonResponseDto', async () => {
+      const mockResult: TransactionResultResponseDto = {
+        hash: '0xtxhash123',
+        status: 'confirmed',
+        blockNumber: '12345',
+        blockHash: '0xblockhash123',
+      };
+      service.transferStablecoin.mockResolvedValue(mockResult);
+
+      const result = await controller.transferStablecoin({
+        privateKey: '0xprivatekey',
+        to: '0xto',
+        amount: '100',
+      });
+
+      expect(result).toBeInstanceOf(CommonResponseDto);
+      expect(result.data).toEqual(mockResult);
+      expect(result.message).toBe('스테이블코인 전송 성공');
+      expect(service.transferStablecoin).toHaveBeenCalledWith('0xprivatekey', '0xto', '100');
     });
   });
 });
