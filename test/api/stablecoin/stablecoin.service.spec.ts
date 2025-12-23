@@ -302,7 +302,7 @@ describe('StablecoinService', () => {
         '/stablecoin/balance/0x742d35cc6634c0532925a3b844bc9e7595f0beb0',
       );
       expect(result.balance).toBe('100.0'); // 토큰 단위
-      expect(result.balanceSmallestUnit).toBe('100000000000000000000'); // smallest unit (10진수)
+      expect(result.balanceWei).toBe('100000000000000000000'); // Wei 단위 (10진수)
     });
 
     it('should handle zero balance', async () => {
@@ -317,7 +317,7 @@ describe('StablecoinService', () => {
       const result = await service.getStablecoinBalance('0x742d35cc6634c0532925a3b844bc9e7595f0beb0');
 
       expect(result.balance).toBe('0.0'); // 토큰 단위
-      expect(result.balanceSmallestUnit).toBe('0'); // smallest unit
+      expect(result.balanceWei).toBe('0'); // Wei 단위
     });
   });
 

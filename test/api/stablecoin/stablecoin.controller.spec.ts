@@ -182,7 +182,7 @@ describe('StablecoinController', () => {
     it('should return balance wrapped in CommonResponseDto', async () => {
       const mockBalance = {
         balance: '100.0',
-        balanceSmallestUnit: '100000000000000000000',
+        balanceWei: '100000000000000000000',
       };
       service.getStablecoinBalance.mockResolvedValue(mockBalance);
 

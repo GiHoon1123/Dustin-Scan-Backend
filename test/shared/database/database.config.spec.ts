@@ -1,9 +1,3 @@
-import {
-  databaseConfig,
-  logDatabaseConfig,
-  validateDatabaseEnv,
-} from '../../../shared/database/database.config';
-
 describe('database.config', () => {
   const originalEnv = process.env;
 
@@ -43,57 +37,71 @@ describe('database.config', () => {
 
     it('should set synchronize to true when DB_SYNCHRONIZE is true', () => {
       process.env.DB_SYNCHRONIZE = 'true';
+      jest.resetModules();
       const config = require('../../../shared/database/database.config').databaseConfig;
       expect(config.synchronize).toBe(true);
     });
 
     it('should set logging to true when DB_LOGGING is true', () => {
       process.env.DB_LOGGING = 'true';
+      jest.resetModules();
       const config = require('../../../shared/database/database.config').databaseConfig;
       expect(config.logging).toBe(true);
     });
 
     it('should have connection pool settings', () => {
-      const config = databaseConfig as any;
-      expect(config.extra).toBeDefined();
-      expect(config.extra.max).toBe(20);
-      expect(config.extra.min).toBe(5);
+      const { databaseConfig: config } = require('../../../shared/database/database.config');
+      expect((config as any).extra).toBeDefined();
+      expect((config as any).extra.max).toBe(20);
+      expect((config as any).extra.min).toBe(5);
     });
   });
 
   describe('validateDatabaseEnv', () => {
     it('should not throw when all required env vars are present', () => {
+      const { validateDatabaseEnv } = require('../../../shared/database/database.config');
       expect(() => validateDatabaseEnv()).not.toThrow();
     });
 
     it('should throw when DB_HOST is missing', () => {
       delete process.env.DB_HOST;
+      jest.resetModules();
+      const { validateDatabaseEnv } = require('../../../shared/database/database.config');
       expect(() => validateDatabaseEnv()).toThrow('Missing required environment variables');
     });
 
     it('should throw when DB_PORT is missing', () => {
       delete process.env.DB_PORT;
+      jest.resetModules();
+      const { validateDatabaseEnv } = require('../../../shared/database/database.config');
       expect(() => validateDatabaseEnv()).toThrow('Missing required environment variables');
     });
 
     it('should throw when DB_USERNAME is missing', () => {
       delete process.env.DB_USERNAME;
+      jest.resetModules();
+      const { validateDatabaseEnv } = require('../../../shared/database/database.config');
       expect(() => validateDatabaseEnv()).toThrow('Missing required environment variables');
     });
 
     it('should throw when DB_PASSWORD is missing', () => {
       delete process.env.DB_PASSWORD;
+      jest.resetModules();
+      const { validateDatabaseEnv } = require('../../../shared/database/database.config');
       expect(() => validateDatabaseEnv()).toThrow('Missing required environment variables');
     });
 
     it('should throw when DB_DATABASE is missing', () => {
       delete process.env.DB_DATABASE;
+      jest.resetModules();
+      const { validateDatabaseEnv } = require('../../../shared/database/database.config');
       expect(() => validateDatabaseEnv()).toThrow('Missing required environment variables');
     });
   });
 
   describe('logDatabaseConfig', () => {
     it('should log database configuration', () => {
+      const { logDatabaseConfig } = require('../../../shared/database/database.config');
       const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
       logDatabaseConfig();
       expect(consoleSpy).toHaveBeenCalled();
@@ -101,4 +109,3 @@ describe('database.config', () => {
     });
   });
 });
-
