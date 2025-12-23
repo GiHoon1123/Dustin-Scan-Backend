@@ -15,6 +15,7 @@ import { AccountsModule } from './accounts/accounts.module';
 import { BlocksModule } from './blocks/blocks.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { HealthController } from './health/health.controller';
+import { StakingModule } from './staking/staking.module';
 import { StablecoinModule } from './stablecoin/stablecoin.module';
 import { TransactionsModule } from './transactions/transactions.module';
 
@@ -48,6 +49,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     AccountsModule,
     ContractsModule,
     StablecoinModule,
+    StakingModule,
   ],
   controllers: [HealthController],
 })
