@@ -29,7 +29,7 @@ export const databaseConfig: TypeOrmModuleOptions = {
   password: String(process.env.DB_PASSWORD),
   database: process.env.DB_DATABASE,
   entities: [Block, Transaction, Account, Token, TokenTransfer],
-  // synchronize: process.env.DB_SYNCHRONIZE === 'true',
+  synchronize: process.env.DB_SYNCHRONIZE === 'true',
   logging: process.env.DB_LOGGING === 'true',
 
   // Connection Pool 설정
