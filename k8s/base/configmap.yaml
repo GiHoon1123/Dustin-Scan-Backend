@@ -18,8 +18,8 @@ data:
   DB_SYNCHRONIZE: 'false'
 
   # Chain RPC URL (도커 컨테이너로 실행 중인 Dustin-Chain에 접근)
-  # 워커 노드 IP로 직접 접근 (도커 컨테이너는 호스트 포트 3000에 바인딩됨)
-  CHAIN_URL: 'http://172.31.45.89:3000'
+  # 코어 서버 공인 IP로 접근 (같은 인스턴스에 있지만 Pod에서 호스트 접근을 위해 공인 IP 사용)
+  CHAIN_URL: 'http://3.39.148.232:3000'
 
   # Indexer Service URL (같은 네임스페이스 내 서비스 이름 사용)
   INDEXER_URL: 'http://prod-indexer-service:4001'
