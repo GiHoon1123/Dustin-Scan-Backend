@@ -17,9 +17,8 @@ data:
   DB_USERNAME: 'root'
   DB_SYNCHRONIZE: 'false'
 
-  # Chain RPC URL (도커 컨테이너로 실행 중인 Dustin-Chain에 접근)
-  # 코어 서버 공인 IP로 접근 (같은 인스턴스에 있지만 Pod에서 호스트 접근을 위해 공인 IP 사용)
-  CHAIN_URL: 'http://3.39.148.232:3000'
+  # Chain RPC URL은 Secret에서 관리 (보안상 민감한 정보)
+  # 실제 값은 환경별 Secret에서 설정
 
   # Indexer Service URL (같은 네임스페이스 내 서비스 이름 사용)
   INDEXER_URL: 'http://prod-indexer-service:4001'
